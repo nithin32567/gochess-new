@@ -1,0 +1,29 @@
+name: Deploy LMS on Merge to Server Branch
+
+on:
+  push:
+    branches:
+      - server
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /home/ubuntu/LMS
+            git pull origin server
+            npm install --prefix server-side
+            npm install --prefix client-side
+            npm run build --prefix client-side
+            pm2 restart LMS
+
