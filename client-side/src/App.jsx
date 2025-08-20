@@ -102,9 +102,11 @@ function App() {
     <Route path="/student" element={<StudentLayout />}>
      <Route index element={<StudentDashboard />} />
      <Route path="course/:id" element={<CourseDetails />} />
+
      {/* <Route path="courses" element={<StudentCourses />} />
-          <Route path="lessons" element={<StudentLessons />} />
-          <Route path="quizzes" element={<StudentQuizzes />} /> */}
+     <Route path="lessons" element={<StudentLessons />} />
+     <Route path="quizzes" element={<StudentQuizzes />} /> */}
+
     </Route>
 
     {/* Instructor Routes */}

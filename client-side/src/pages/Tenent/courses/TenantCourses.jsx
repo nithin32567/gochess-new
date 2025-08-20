@@ -10,6 +10,7 @@ import {
  searchCourses,
  fetchCourses,
 } from "@/redux/course.slice";
+import Popup from "../../../components/popup";
 function TenantCourses() {
  const dispatch = useDispatch();
  const [searchValue, setSearchValue] = useState("");
@@ -140,37 +141,30 @@ function TenantCourses() {
      <div className="container-fluid">
       <div className="row">
 
-       {filteredCourses && filteredCourses.length == 0 ? (
-        filteredCourses.map((course, index) => {
-         return(
-         <div className="col-xl-3 col-lg-3 col-sm-6">
-          <a href="#" className="ourcourse-item-div">
-           <div className="course-image">
-            <img src="/img/chessthumbnail.jpg" alt="Chess" />
-           </div>
-           <div className="course-content">
-            <h4>
-             <font>
-              Tactic Ninja - Sharpen Your Chess Tactics with a Grandmaster
-             </font>
-            </h4>
-            <h3>
-             <font>
-              <i className="fa-solid fa-indian-rupee-sign" />
-              999
-             </font>
-             <span>
-              <i className="fa-solid fa-indian-rupee-sign" />
-              399
-             </span>
-            </h3>
-           </div>
-           <h6>
-            <i className="fa-regular fa-clock" /> 20 total hours
-           </h6>
-          </a>
-         </div>
-        )})
+       {/* {filteredCourses && filteredCourses.length == 0 ? ( */}
+       {true ? (
+        (JSON.parse(localStorage.getItem("st-courses"))).map((course, index) => {
+         return (
+          <div key={index} className="col-xl-3 col-lg-3 col-sm-6">
+           <a href="#" className="ourcourse-item-div">
+            <div className="course-image">
+             <img src="/img/chessthumbnail.jpg" alt="Chess" />
+            </div>
+            <div className="course-content">
+             <h4>
+              <font>
+               {course.course_title}
+              </font>
+              {course.short_description}
+             </h4>
+            </div>
+            <h6>
+             <i className="fa-regular fa-clock" /> Starts on: {course.start_date}
+            </h6>
+           </a>
+          </div>
+         )
+        })
        ) : (
         <div className="col-span-full text-center text-gray-500 py-8">
          No Course found
@@ -205,7 +199,7 @@ function TenantCourses() {
      />
      <select
       className="px-4 py-2 border rounded-md"
-      onChange={(e) => dispatch(filterCoursesByCategory(e.target.value))}
+     // onChange={(e) => dispatch(filterCoursesByCategory(e.target.value))}
      >
       <option value="all">All Categories</option>
       {categories &&
@@ -231,7 +225,9 @@ function TenantCourses() {
       ))}
     </div>
     {isAddCourseModalOpen && (
-     <AddCourseModal setIsAddCourseModalOpen={setIsAddCourseModalOpen} />
+     <Popup>
+      <AddCourseModal setIsAddCourseModalOpen={setIsAddCourseModalOpen} />
+     </Popup>
     )}
    </div>
   </>

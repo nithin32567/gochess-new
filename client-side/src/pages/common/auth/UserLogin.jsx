@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 function UserLogin() {
  // login the user and get the current user details store in the user slice
@@ -18,21 +19,24 @@ function UserLogin() {
   console.log(signinData);
   try {
    setLoading(true);
-   const response = await axios.post(`${API_URL}/users/login`, signinData, {
-    withCredentials: true,
-   });
-   console.log("response", response);
+   //  const response = await axios.post(`${API_URL}/users/login`, signinData, {
+   //   withCredentials: true,
+   //  });
+   //  console.log("response", response);
 
    setLoading(false);
-   if (response.data) {
-    if (response.data.user.role === "tenantadmin") {
-     navigate("/tenant");
-    } else if (response.data.user.role === "instructor") {
-     navigate("/instructor");
-    } else {
-     navigate("/student");
-    }
+   localStorage.setItem("user-email", signinData.email);
+   //  if (response.data) {
+   if (signinData.email === "tenant@gmail.com") {
+    navigate("/tenant");
+   } else if (signinData.email === "instructor@gmail.com" && signinData.password === "instructor@1234#") {
+    navigate("/instructor");
+   } else if (signinData.email === "student@gmail.com" && signinData.password === "student@1234#") {
+    navigate("/student");
+   } else {
+    toast.error("Invalid email or password");
    }
+   //  }
   } catch (error) {
    setLoading(false);
    console.log("error", error);

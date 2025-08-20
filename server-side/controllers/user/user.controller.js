@@ -51,7 +51,7 @@ export const createUser = async (req, res) => {
       lname,
       age,
       dob,
-      phone_number,
+      phone_number: "9988998976",
       email,
     });
     const password = `student@${Math.floor(Math.random() * 10000)}`;
@@ -397,12 +397,12 @@ export const getUsersByTenant = async (req, res) => {
     // Build search query
     const searchQuery = search
       ? {
-          $or: [
-            { fname: { $regex: search, $options: "i" } },
-            { lname: { $regex: search, $options: "i" } },
-            { "login.email": { $regex: search, $options: "i" } },
-          ],
-        }
+        $or: [
+          { fname: { $regex: search, $options: "i" } },
+          { lname: { $regex: search, $options: "i" } },
+          { "login.email": { $regex: search, $options: "i" } },
+        ],
+      }
       : {};
 
     // Get users with pagination
@@ -500,12 +500,12 @@ export const getUsersByTenantAndRole = async (req, res) => {
     // Build search query
     const searchQuery = search
       ? {
-          $or: [
-            { fname: { $regex: search, $options: "i" } },
-            { lname: { $regex: search, $options: "i" } },
-            { "login.email": { $regex: search, $options: "i" } },
-          ],
-        }
+        $or: [
+          { fname: { $regex: search, $options: "i" } },
+          { lname: { $regex: search, $options: "i" } },
+          { "login.email": { $regex: search, $options: "i" } },
+        ],
+      }
       : {};
 
     // Get users with pagination

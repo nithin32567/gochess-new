@@ -4,8 +4,8 @@ import Role from "../models/role.model.js";
 export const authMiddleware = async (req, res, next) => {
  try {
   console.log("auth middleware");
-  console.log(req.cookies);
   const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+  console.log(token);
   if (!token) {
    return res.status(401).json({ message: "Unauthorized" });
   }

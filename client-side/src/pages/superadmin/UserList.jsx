@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Pagination } from "@mui/material";
 import UserCreationModal from "../../components/User/UserCreationModal";
+import Popup from "../../components/popup";
 
 const UserList = () => {
  const navigate = useNavigate();
@@ -154,12 +155,14 @@ const UserList = () => {
           </button>
          </div>
          {open && (
-          <UserCreationModal
-           open={open}
-           handleOpen={handleOpen}
-           handleClose={handleClose}
-           roles={roles}
-          />
+          <Popup>
+           <UserCreationModal
+            open={open}
+            handleOpen={handleOpen}
+            handleClose={handleClose}
+            roles={roles}
+           />
+          </Popup>
          )}
         </div>
        </div>

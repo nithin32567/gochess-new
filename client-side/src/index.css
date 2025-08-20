@@ -2271,6 +2271,17 @@ position: absolute;
     font-size: 15px;
 }
 
+.newtrainer-modal .trainer-input-item select{
+    width: 100%;
+    height: 45px;
+    padding: 0px 0px 0px 10px;
+    border: 1px solid var(--TextColor);
+    border-radius: 4px;
+    outline: none;
+    color: var(--HeadingColor);
+    font-size: 15px;
+}
+
 .newtrainer-modal .trainer-input-item textarea{
     width: 100%;
     height: 90px;

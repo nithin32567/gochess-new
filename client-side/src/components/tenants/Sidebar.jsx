@@ -130,6 +130,7 @@ const TenantSidebar = () => {
          id="dropdownMenuLink"
          data-bs-toggle="dropdown"
          aria-expanded="false"
+         onClick={handleLogout}
         >
          A
         </button>
