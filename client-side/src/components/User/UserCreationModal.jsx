@@ -4,14 +4,19 @@ import { useState } from "react";
 import { MdClose } from "react-icons/md";
 import { toast } from "react-toastify";
 
-const UserCreationModal = ({ open, handleOpen, handleClose, roles }) => {
+const UserCreationModal = ({ handleClose, roles, tenants }) => {
  const [formData, setFormData] = useState({
   fname: "",
   lname: "",
   email: "",
   password: "",
-  role: "",
+  phone_number: "",
+
+  role_id: "",
+  tenant_id: "",
  });
+
+ console.log(formData, "formData");
 
  const handleChange = (e) => {
   setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -25,9 +30,7 @@ const UserCreationModal = ({ open, handleOpen, handleClose, roles }) => {
     `${import.meta.env.VITE_API_URL}/users`,
     formData,
     {
-     headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`
-     }
+     withCredentials: true,
     }
    );
    console.log(response);
@@ -39,7 +42,7 @@ const UserCreationModal = ({ open, handleOpen, handleClose, roles }) => {
    console.log(">>>>>>>>>>", error);
   }
  };
- 
+
 
  return (
   <>
@@ -91,7 +94,13 @@ const UserCreationModal = ({ open, handleOpen, handleClose, roles }) => {
      />
     </div>
     <div className="trainer-input-item">
-
+     <input
+      type="text"
+      name="phone_number"
+      placeholder="Phone Number"
+      value={formData.phone_number}
+      onChange={handleChange}
+     />
     </div>
     <div className="trainer-input-item">
      <select
@@ -105,8 +114,26 @@ const UserCreationModal = ({ open, handleOpen, handleClose, roles }) => {
        Select Role
       </option>
       {roles.map((role, i) => (
-       <option key={i} className="text-gray-500" value={role.id}>
+       <option key={i} className="text-gray-500" value={role._id}>
         {role.name}
+       </option>
+      ))}
+     </select>
+    </div>
+    <div className="trainer-input-item">
+     <select
+      className="border-2 border-gray-300 rounded-md p-2"
+      name="tenant_id"
+      id=""
+      value={formData.tenant_id}
+      onChange={handleChange}
+     >
+      <option className="text-gray-500" value="">
+       Select Tenant
+      </option>
+      {tenants.map((tenant, i) => (
+       <option key={i} className="text-gray-500" value={tenant._id}>
+        {tenant.name}
        </option>
       ))}
      </select>

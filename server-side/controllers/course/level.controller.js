@@ -13,7 +13,7 @@ export const createLevel = async (req, res) => {
 export const getLevels = async (req, res) => {
   try {
     const levels = await CourseLevel.find();
-    console.log(levels, "levels================================");
+    //  console.log(levels, "levels================================");
     res.status(200).json({ success: true, data: levels });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

@@ -6,11 +6,19 @@ import Language from "../../models/Language.js";
 import Level from "../../models/CourseLevel.js";
 import User from "../../models/user.model.js";
 import Role from "../../models/role.model.js";
+import path from "path";
+import fs from "fs";
+import Module from "../../models/Module.js";
+import Lesson from "../../models/Lesson.model.js";
 
 // Create a new course
 export const createCourse = async (req, res) => {
-  console.log(req.body);
-  
+  // console.log(
+  //   "Request file:============",
+  //   req.file,
+  //   "==============================="
+  // );
+
   try {
     const {
       course_title,
@@ -43,6 +51,25 @@ export const createCourse = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "All required fields must be provided.",
+        missingFields: {
+          course_title: !course_title,
+          short_description: !short_description,
+          description: !description,
+          category: !category,
+          subcategory: !subcategory,
+          language: !language,
+          level: !level,
+          max_enrollment: !max_enrollment,
+          tenant_id: !tenant_id,
+        },
+      });
+    }
+
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Course image is required.",
       });
     }
 
@@ -74,6 +101,7 @@ export const createCourse = async (req, res) => {
       start_date,
       end_date,
       drip_content_enabled: drip_content_enabled || false,
+      image: req.file.filename || null,
     });
 
     await course.save();
@@ -244,57 +272,76 @@ export const getCourseStats = async (req, res) => {
   }
 };
 
-// Add instructor to course
-export const addInstructorToCourse = async (req, res) => {
+// ! assign courses to instructor
+
+export const assignCoursesToInstructor = async (req, res) => {
+  console.log("assignCoursesToInstructor");
+  const { instructorId } = req.params;
+  const { courseIds } = req.body;
+
   try {
-    const { courseId, instructorId } = req.params;
+    const objectIdInstructorId = new mongoose.Types.ObjectId(instructorId);
 
-    // Find the course
-    const course = await Course.findById(courseId);
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: "Course not found",
-      });
-    }
-
-    // Check if user has permission to modify course
-    if (
-      course.instructor.toString() !== req.user._id.toString() &&
-      !req.user.isAdmin
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: "Not authorized to modify this course",
-      });
-    }
-
-    // Check if instructor is already assigned
-    if (course.instructor.toString() === instructorId) {
+    // Validate input IDs
+    if (!mongoose.Types.ObjectId.isValid(instructorId)) {
       return res.status(400).json({
         success: false,
-        message: "Instructor is already assigned to this course",
+        message: "Invalid instructorId",
       });
     }
 
-    // Update course with new instructor
-    course.instructor = instructorId;
-    course.updatedBy = req.user._id;
-    course.updatedAt = Date.now();
-    await course.save();
+    const validCourseIds = courseIds.filter((id) =>
+      mongoose.Types.ObjectId.isValid(id)
+    );
 
-    // Populate instructor details in response
-    await course.populate("instructor", "name email");
+    if (validCourseIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid course IDs provided",
+      });
+    }
 
-    res.status(200).json({
+    const courses = await Course.find({
+      _id: { $in: validCourseIds },
+    });
+
+    if (courses.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No matching courses found",
+      });
+    }
+
+    const updatedCourses = [];
+
+    for (const course of courses) {
+      // Check if instructor is already in the array
+      const alreadyExists = course.instructors.some((id) =>
+        id.equals(objectIdInstructorId)
+      );
+
+      if (!alreadyExists) {
+        course.instructors.push(objectIdInstructorId);
+        await course.save();
+        updatedCourses.push(course);
+      } else {
+        return res.status(200).json({
+          success: false,
+          message: "Instructor already assigned to this course",
+          data: course,
+        });
+      }
+    }
+    return res.status(200).json({
       success: true,
-      message: "Instructor added successfully",
-      data: course,
+      message: "Instructor assigned to courses successfully",
+      data: updatedCourses,
     });
   } catch (error) {
+    console.error("assignCoursesToInstructor error:", error);
     return res.status(500).json({
       success: false,
-      message: "An error occurred while adding instructor",
+      message: "An error occurred while assigning courses to instructor",
       error: error.message,
     });
   }
@@ -366,9 +413,9 @@ export const assignInstructors = async (req, res) => {
     // Assign only new instructors
     course.instructors.push(...newInstructors);
     await course.save();
-    console.log(
-      "============================================ not going to this"
-    );
+    // console.log(
+    //   "============================================ not going to this"
+    // );
     return res.status(200).json({
       success: true,
       message: "Instructors assigned successfully.",
@@ -428,8 +475,9 @@ export const toggleCourseActiveStatus = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: `Course has been successfully ${isActive ? "activated" : "deactivated"
-        }.`,
+      message: `Course has been successfully ${
+        isActive ? "activated" : "deactivated"
+      }.`,
       data: course,
     });
   } catch (error) {
@@ -546,8 +594,9 @@ export const toggleArchiveStatus = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: `Course has been successfully ${archive ? "archived" : "unarchived"
-        }.`,
+      message: `Course has been successfully ${
+        archive ? "archived" : "unarchived"
+      }.`,
       data: course,
     });
   } catch (error) {
@@ -559,46 +608,75 @@ export const toggleArchiveStatus = async (req, res) => {
   }
 };
 
+// Get all courses
 export const getAllCourses = async (req, res) => {
   try {
     const { tenant_id } = req.user;
+    const { limit = 10, page = 1 } = req.query;
+
+    // Validate pagination parameters
+    const limitNum = parseInt(limit);
+    const pageNum = parseInt(page);
+
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Limit must be a number between 1 and 100",
+      });
+    }
+
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Page must be a positive number",
+      });
+    }
 
     if (!tenant_id) {
       return res.status(400).json({
         success: false,
-        message: "tenant_id is required in query parameters",
+        message: "Tenant ID is required",
       });
     }
 
-    const courses = await Course.find({ tenant_id })
+    // Calculate skip value
+    const skip = (pageNum - 1) * limitNum;
 
+    // Get total count for pagination
+    const totalCourses = await Course.countDocuments({ tenant_id });
+    const totalPages = Math.ceil(totalCourses / limitNum);
+
+    const courses = await Course.find({ tenant_id })
+      .limit(limitNum)
+      .skip(skip)
       .populate("category")
       .populate("subcategory", "subcategory_name")
       .populate("language")
       .populate("level")
+      .populate("instructors")
+      .sort({ createdAt: -1 });
 
-      .populate({
-        path: "instructors",
-        model: "User",
-        select: "fname lname email",
-      })
-      .populate({
-        path: "students",
-        model: "User",
-        select: "fname lname email",
-      });
-
+    console.log(
+      courses,
+      "courses[0].instructors =============================================================="
+    );
     return res.status(200).json({
       success: true,
-      message: "Courses retrieved successfully",
-      count: courses.length,
       data: courses,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalCourses,
+        limit: limitNum,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1,
+      },
     });
   } catch (error) {
     console.error("Error fetching courses:", error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: "An error occurred while fetching courses",
       error: error.message,
     });
   }
@@ -715,8 +793,11 @@ export const getCoursesByCategory = async (req, res) => {
   try {
     const { categoryId } = req.params;
     const { tenant_id } = req.user;
-    const courses = await Course.find({ category: categoryId, tenant_id });
-    // console.log(courses, "courses");
+    const courses = await Course.find({ category: categoryId, tenant_id })
+      .populate("category")
+      .populate("subcategory", "subcategory_name")
+      .populate("language")
+      .populate("level");
 
     return res.status(200).json({
       success: true,
@@ -731,4 +812,176 @@ export const getCoursesByCategory = async (req, res) => {
   }
 };
 
+export const getCoursesByLevel = async (req, res) => {
+  try {
+    const { levelId } = req.params;
+    const { tenant_id } = req.user;
 
+    console.log("getCoursesByLevel called with levelId:", levelId);
+    console.log("tenant_id:", tenant_id);
+
+    const courses = await Course.find({ level: levelId, tenant_id })
+      .populate("category")
+      .populate("subcategory", "subcategory_name")
+      .populate("language")
+      .populate("level");
+
+    console.log("Found courses:", courses.length);
+    console.log("Courses:", courses);
+
+    return res.status(200).json({
+      success: true,
+      data: courses,
+    });
+  } catch (error) {
+    console.error("Error in getCoursesByLevel:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching courses by level",
+      error: error.message,
+    });
+  }
+};
+
+export const getCoursesByCategoryAndLevel = async (req, res) => {
+  try {
+    const { categoryId, levelId } = req.params;
+    const { tenant_id } = req.user;
+
+    console.log(
+      "getCoursesByCategoryAndLevel called with categoryId:",
+      categoryId,
+      "levelId:",
+      levelId
+    );
+    console.log("tenant_id:", tenant_id);
+
+    const courses = await Course.find({
+      category: categoryId,
+      level: levelId,
+      tenant_id,
+    })
+      .populate("category")
+      .populate("subcategory", "subcategory_name")
+      .populate("language")
+      .populate("level");
+
+    console.log("Found courses with category and level:", courses.length);
+    console.log("Courses:", courses);
+
+    return res.status(200).json({
+      success: true,
+      data: courses,
+    });
+  } catch (error) {
+    console.error("Error in getCoursesByCategoryAndLevel:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching courses by category and level",
+      error: error.message,
+    });
+  }
+};
+
+export const deleteCourseImage = async (req, res) => {
+  const { courseId } = req.params;
+  const { tenant_id } = req.user;
+  const course = await Course.findById(courseId);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: "Course not found",
+    });
+  }
+  if (course.tenant_id !== tenant_id) {
+    return res.status(403).json({
+      success: false,
+      message: "You are not authorized to delete this course",
+    });
+  }
+  // find and delete the modules having the course id inside it
+  const modules = await Module.find({ course_id: courseId });
+  if (modules.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Cannot delete course with modules",
+    });
+  }
+
+  const image = course.image;
+  if (!image) {
+    return res.status(400).json({
+      success: false,
+      message: "Course image not found",
+    });
+  }
+  const imagePath = path.join(
+    __dirname,
+    "..",
+    "..",
+    "uploads",
+    "courses",
+    image
+  );
+  if (fs.existsSync(imagePath)) {
+    fs.unlinkSync(imagePath);
+  }
+  course.image = null;
+  await course.save();
+  return res.status(200).json({
+    success: true,
+    message: "Course image deleted successfully",
+  });
+};
+
+export async function getCourseDataById(req, res) {
+  try {
+    const { id } = req.params;
+
+    // 1. Fetch course details
+    const course = await Course.findById(id)
+      .populate("instructors", "fname lname email _id")
+      .populate("category", "category")
+      .populate("subcategory", "subcategory_name")
+      .populate("language", "language")
+      .populate("level", "course_level");
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    // 2. Fetch modules for the course
+    const modules = await Module.find({ course_id: id });
+
+    // 3. For each module, fetch lessons and populate lesson_type_id
+    const modulesWithLessons = await Promise.all(
+      modules.map(async (module) => {
+        const lessons = await Lesson.find({ module_id: module._id })
+          .populate("lesson_type_id");
+        return {
+          ...module.toObject(),
+          lessons,
+        };
+      })
+    );
+
+    // 4. Return combined data
+    return res.status(200).json({
+      success: true,
+      message: "Course data fetched successfully",
+      data: {
+        course,
+        modules: modulesWithLessons,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getCourseDataById:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching course data",
+      error: error.message,
+    });
+  }
+}

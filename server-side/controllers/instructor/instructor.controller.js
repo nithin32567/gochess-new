@@ -3,24 +3,32 @@ import Login from "../../models/login.model.js";
 export const getAllInstructors = async (req, res) => {
   try {
     const tenant_id = req.user.tenant_id;
+    // console.log(tenant_id, "tenant_id");
+    // console.log(req.user, "req.user");
 
     const instructors = await Login.find({
-      tenant_id: req.user.tenant_id,
+      tenant_id: tenant_id,
     })
       .populate("user_id role_id")
       .select("-password");
-    const filteredInstructors = instructors.filter(
-      (instructor) => instructor.role_id.name === "instructor"
-    );
-    // console.log(filteredInstructors, "filteredInstructors");
 
-    // organize to single data
+    const filteredInstructors = instructors.filter(
+
+      (instructor) => instructor.role_id?.name === "instructor"
+
+    );
+
     const organizedInstructors = filteredInstructors.map((instructor) => ({
       id: instructor._id,
       email: instructor.email,
       name: instructor.user_id.fname + " " + instructor.user_id.lname,
       role: instructor.role_id.name,
       role_id: instructor.role_id._id,
+      phone_number: instructor.user_id.phone_number,
+      dob: instructor.user_id.dob,
+      age: instructor.user_id.age,
+      user_id: instructor.user_id._id,
+      status: instructor.is_active,
       createdAt: instructor.createdAt,
       updatedAt: instructor.updatedAt,
     }));
@@ -30,7 +38,7 @@ export const getAllInstructors = async (req, res) => {
       data: organizedInstructors,
     });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -49,19 +57,23 @@ export const searchInstructor = async (req, res) => {
 
     // console.log(instructors, "instructors");
     const filteredInstructors = instructors.filter(
-      (instructor) => instructor.role_id.name === "instructor"
+      (instructor) => instructor.role_id && instructor.role_id.name === "instructor"
     );
 
     // filter by searchValue email lname fname
     // if searchValue is empty, return all instructors
     if (searchValue === "") {
-      console.log("searchValue is empty");
+      // console.log("searchValue is empty");
       const organizedInstructors = filteredInstructors.map((instructor) => ({
         id: instructor._id,
         email: instructor.email,
         name: instructor.user_id.fname + " " + instructor.user_id.lname,
         role: instructor.role_id.name,
         role_id: instructor.role_id._id,
+        phone_number: instructor.user_id.phone_number,
+        dob: instructor.user_id.dob,
+        age: instructor.user_id.age,
+        status: instructor.user_id.is_active,
         createdAt: instructor.createdAt,
         updatedAt: instructor.updatedAt,
       }));
@@ -87,6 +99,10 @@ export const searchInstructor = async (req, res) => {
         name: instructor.user_id.fname + " " + instructor.user_id.lname,
         role: instructor.role_id.name,
         role_id: instructor.role_id._id,
+        phone_number: instructor.user_id.phone_number,
+        dob: instructor.user_id.dob,
+        age: instructor.user_id.age,
+        status: instructor.user_id.is_active,
         createdAt: instructor.createdAt,
         updatedAt: instructor.updatedAt,
       })
@@ -97,12 +113,10 @@ export const searchInstructor = async (req, res) => {
       data: organizedInstructors,
     });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
     });
   }
 };
-
-

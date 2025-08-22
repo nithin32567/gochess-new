@@ -92,7 +92,10 @@ export const addUserAddress = async (req, res) => {
       },
     });
   } catch (error) {
-    await session.abortTransaction();
+    // Only abort transaction if it hasn't been committed yet
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error("Error adding address:", error);
     res.status(500).json({
       success: false,
@@ -246,7 +249,10 @@ export const updateUserAddress = async (req, res) => {
       },
     });
   } catch (error) {
-    await session.abortTransaction();
+    // Only abort transaction if it hasn't been committed yet
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error("Error updating address:", error);
     res.status(500).json({
       success: false,
@@ -315,7 +321,10 @@ export const deleteUserAddress = async (req, res) => {
       message: "Address deleted successfully",
     });
   } catch (error) {
-    await session.abortTransaction();
+    // Only abort transaction if it hasn't been committed yet
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error("Error deleting address:", error);
     res.status(500).json({
       success: false,
@@ -384,7 +393,10 @@ export const setPrimaryAddress = async (req, res) => {
       },
     });
   } catch (error) {
-    await session.abortTransaction();
+    // Only abort transaction if it hasn't been committed yet
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error("Error setting primary address:", error);
     res.status(500).json({
       success: false,

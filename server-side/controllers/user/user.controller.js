@@ -1,10 +1,16 @@
 import User from "../../models/user.model.js";
 import Login from "../../models/login.model.js";
+import Course from "../../models/Course.js";
 import mongoose from "mongoose";
 import sendMail from "../../utils/senMail.js";
 import bcrypt from "bcrypt";
+import generateRandomPassword from "../../config/generatePassword.js";
+import jwt from "jsonwebtoken";
+import Role from "../../models/role.model.js";
+import Tenant from "../../models/tenant.model.js";
 // Create a new user with login credentials
 export const createUser = async (req, res) => {
+  // >>>>>>> dev
   console.log("createUser", req.body);
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -22,13 +28,48 @@ export const createUser = async (req, res) => {
       email,
       // password,
       role_id,
+      tenant_id,
     } = req.body;
 
+    console.log(tenant_id, "tenant_id=======================");
+
     // Validate required fields
-    if (!fname || !lname || !email || !role_id) {
+    if (!fname || !lname || !email || !role_id || !tenant_id) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields",
+      });
+    }
+
+    // Validate ObjectIds
+    if (!mongoose.Types.ObjectId.isValid(role_id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role ID format",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(tenant_id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid tenant ID format",
+      });
+    }
+
+    // Verify role and tenant exist
+    const role = await Role.findById(role_id);
+    if (!role) {
+      return res.status(400).json({
+        success: false,
+        message: "Role not found",
+      });
+    }
+
+    const tenant = await Tenant.findById(tenant_id);
+    if (!tenant) {
+      return res.status(400).json({
+        success: false,
+        message: "Tenant not found",
       });
     }
     // console.log();
@@ -36,7 +77,7 @@ export const createUser = async (req, res) => {
     // Check if email already exists for the tenant
     const existingLogin = await Login.findOne({
       email,
-      tenant_id: req.user.tenant_id,
+      tenant_id: tenant_id,
     });
     if (existingLogin) {
       return res.status(400).json({
@@ -51,18 +92,20 @@ export const createUser = async (req, res) => {
       lname,
       age,
       dob,
-      phone_number: "9988998976",
+      phone_number,
       email,
     });
-    const password = `student@${Math.floor(Math.random() * 10000)}`;
+    // !password should be generated in a more secure random way
+
+    const password = generateRandomPassword(12);
     console.log(password);
 
     await user.save({ session });
-    console.log(user, "user created");
+    console.log(user, "user created ==========================");
     // Create login credentials
     const login = new Login({
       user_id: user._id,
-      tenant_id: req.user.tenant_id,
+      tenant_id: tenant_id,
       email,
       password, // Will be hashed by pre-save middleware
       role_id,
@@ -71,6 +114,7 @@ export const createUser = async (req, res) => {
     await login.save({ session });
 
     await session.commitTransaction();
+
     // Return user data without sensitive information
     const userResponse = {
       _id: user._id,
@@ -81,11 +125,23 @@ export const createUser = async (req, res) => {
       tenant_id: login.tenant_id,
       created_at: user.createdAt,
     };
-    sendMail({
-      to: login.email,
-      subject: "Welcome to our platform",
-      text: `Your password is ${password}`,
-    });
+
+    // Send email after successful transaction commit
+    try {
+      const token = jwt.sign({ email: login.email }, process.env.JWT_SECRET, {
+        expiresIn: "1h",
+      });
+      const resetPasswordLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+      await sendMail({
+        to: login.email,
+        subject: "Welcome to our platform",
+        text: `Your password is ${password}`,
+        resetPasswordLink,
+      });
+    } catch (emailError) {
+      console.error("Error sending email:", emailError);
+      // Don't fail the user creation if email fails
+    }
 
     res.status(201).json({
       success: true,
@@ -93,7 +149,10 @@ export const createUser = async (req, res) => {
       data: userResponse,
     });
   } catch (error) {
-    await session.abortTransaction();
+    // Only abort transaction if it hasn't been committed yet
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error("Error creating user:", error);
     res.status(500).json({
       success: false,
@@ -105,214 +164,254 @@ export const createUser = async (req, res) => {
   }
 };
 
+export const updateInstructor = async (req, res) => {
+  const { id } = req.params;
+  const { fname, lname, age, dob, phone_number, email, status } = req.body;
+
+  const instructor = await User.findByIdAndUpdate(id, { fname, lname, age, dob, phone_number }, { new: true });
+  res.status(200).json({ success: true, data: instructor });
+};
+
 // Get user details by ID
 export const getUserById = async (req, res) => {
+  const { id } = req.params;
   try {
-    const { id } = req.params;
-
-    // Validate user ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid user ID",
-      });
-    }
-
-    // Get user with login details using aggregation
-    const user = await User.aggregate([
-      { $match: { _id: new mongoose.Types.ObjectId(id) } },
-      {
-        $lookup: {
-          from: "logins",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "login",
-        },
-      },
-      { $unwind: "$login" },
-      {
-        $project: {
-          _id: 1,
-          fname: 1,
-          lname: 1,
-          age: 1,
-          dob: 1,
-          phone_number: 1,
-          created_at: 1,
-          email: "$login.email",
-          role_id: "$login.role_id",
-          tenant_id: "$login.tenant_id",
-          is_active: "$login.is_active",
-        },
-      },
-    ]);
-
-    if (!user.length) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
+    const loginData = await Login.findById(id).select("-password")
+    const roleData = await Role.findById(loginData.role_id).select("-permissions")
+    const tenantData = await Tenant.findById(loginData.tenant_id)
+    const userData = await User.findById(loginData.user_id)
     res.status(200).json({
       success: true,
-      data: user[0],
-    });
+      data: { loginData, roleData, tenantData, userData }
+    })
   } catch (error) {
-    console.error("Error fetching user:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching user details",
-      error: error.message,
-    });
+      error: error.message
+    })
   }
 };
 
 // Update user details
-export const updateUser = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+// export const updateUser = async (req, res) => {
+//   console.log('working');
+//   console.log(req.body);
 
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+
+//   try {
+//     const { id } = req.params;
+//     const {
+//       fname,
+//       lname,
+//       age,
+//       dob,
+//       phone_number,
+//       email,
+//       // password,
+//       role_id,
+//       status,
+//     } = req.body;
+
+//     // console.log(is_active);
+
+//     // Validate user ID
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid user ID",
+//       });
+//     }
+
+//     // Check if user exists and get their current role
+//     const userLogin = await Login.findOne({ user_id: id }).populate("role_id");
+//     if (!userLogin) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "User not found",
+//       });
+//     }
+
+//     // Check if email already exists (excluding current user)
+//     if (email && email !== userLogin.email) {
+//       const existingEmail = await Login.findOne({
+//         email: email,
+//         user_id: { $ne: id } // Exclude current user
+//       });
+
+//       if (existingEmail) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Email already exists",
+//         });
+//       }
+//     }
+//     // Prevent deactivation of super admin
+//     const superAdminRoleId = "682c0541089c54ce890db8b3";
+//     if (
+//       userLogin.role_id._id.toString() === superAdminRoleId &&
+//       is_active === false
+//     ) {
+//       return res.status(403).json({
+//         success: false,
+//         message: "Cannot deactivate super admin user",
+//       });
+//     }
+
+//     // Prevent role change of super admin
+//     if (
+//       userLogin.role_id._id.toString() === superAdminRoleId &&
+//       role_id &&
+//       role_id !== superAdminRoleId
+//     ) {
+//       return res.status(403).json({
+//         success: false,
+//         message: "Cannot change super admin role",
+//       });
+//     }
+
+//     // Update user details
+//     const user = await User.findByIdAndUpdate(
+//       id,
+//       {
+//         fname,
+//         lname,
+//         age,
+//         dob,
+//         phone_number,
+
+//       },
+//       { new: true, session }
+//     );
+
+//     if (!user) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "User not found",
+//       });
+//     }
+
+//     // Update login details if provided
+//     const loginUpdate = {};
+//     if (email) loginUpdate.email = email;
+//     // if (password) loginUpdate.password = password;
+//     if (role_id) loginUpdate.role_id = role_id;
+//     // if (typeof is_active === "boolean") 
+//     loginUpdate.is_active = status == "active" ? true : false;
+//     console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+//     console.log(loginUpdate);
+
+//     if (Object.keys(loginUpdate).length > 0) {
+//       const login = await Login.findOneAndUpdate({ user_id: id }, loginUpdate, {
+//         new: true,
+//         session,
+//       });
+//       console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+//       console.log(login);
+
+
+//       if (!login) {
+//         throw new Error("Login details not found");
+//       }
+//     }
+
+//     await session.commitTransaction();
+
+//     // Get updated user with login details
+//     const updatedUser = await User.aggregate([
+//       { $match: { _id: new mongoose.Types.ObjectId(id) } },
+//       {
+//         $lookup: {
+//           from: "logins",
+//           localField: "_id",
+//           foreignField: "user_id",
+//           as: "login",
+//         },
+//       },
+//       { $unwind: "$login" },
+//       {
+//         $project: {
+//           _id: 1,
+//           fname: 1,
+//           lname: 1,
+//           age: 1,
+//           dob: 1,
+//           phone_number: 1,
+//           created_at: 1,
+//           email: "$login.email",
+//           role_id: "$login.role_id",
+//           tenant_id: "$login.tenant_id",
+//           is_active: "$login.is_active",
+//         },
+//       },
+//     ]);
+
+//     res.status(200).json({
+//       success: true,
+//       message: "User updated successfully",
+//       data: updatedUser[0],
+//     });
+//   } catch (error) {
+//     console.error("Error updating user:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Error updating user",
+//       error: error.message,
+//     });
+//   } finally {
+//     session.endSession();
+//   }
+// };
+
+export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      fname,
-      lname,
-      age,
-      dob,
-      phone_number,
-      email,
-      // password,
-      role_id,
-      is_active,
-    } = req.body;
 
-    console.log(id);
 
-    // Validate user ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid user ID",
-      });
+    console.log(req.body)
+    const login = await Login.findById(id)
+    const user = await User.findById(login.user_id)
+
+    if ("is_active" in req.body) {
+      login.is_active = req.body.is_active; // assign directly
     }
-
-    // Check if user exists and get their current role
-    const userLogin = await Login.findOne({ user_id: id }).populate("role_id");
-    if (!userLogin) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+    // if (req.body.is_active) {
+    //   login.is_active === true ? login.is_active = true : login.is_active = false
+    // }
+    if (req.body.role_id) {
+      login.role_id = req.body.role_id
     }
-
-    // Prevent deactivation of super admin
-    const superAdminRoleId = "682c0541089c54ce890db8b3";
-    if (
-      userLogin.role_id._id.toString() === superAdminRoleId &&
-      is_active === false
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: "Cannot deactivate super admin user",
-      });
+    if (req.body.email) {
+      login.email = req.body.email
     }
-
-    // Prevent role change of super admin
-    if (
-      userLogin.role_id._id.toString() === superAdminRoleId &&
-      role_id &&
-      role_id !== superAdminRoleId
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: "Cannot change super admin role",
-      });
+    if (req.body.tenant_id) {
+      login.tenant_id = req.body.tenant_id
     }
-
-    // Update user details
-    const user = await User.findByIdAndUpdate(
-      id,
-      {
-        fname,
-        lname,
-        age,
-        dob,
-        phone_number,
-      },
-      { new: true, session }
-    );
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+    if (req.body.fname) {
+      user.fname = req.body.fname
     }
-
-    // Update login details if provided
-    const loginUpdate = {};
-    if (email) loginUpdate.email = email;
-    // if (password) loginUpdate.password = password;
-    if (role_id) loginUpdate.role_id = role_id;
-    if (typeof is_active === "boolean") loginUpdate.is_active = is_active;
-
-    if (Object.keys(loginUpdate).length > 0) {
-      const login = await Login.findOneAndUpdate({ user_id: id }, loginUpdate, {
-        new: true,
-        session,
-      });
-
-      if (!login) {
-        throw new Error("Login details not found");
-      }
+    if (req.body.lname) {
+      user.lname = req.body.lname
     }
-
-    await session.commitTransaction();
-
-    // Get updated user with login details
-    const updatedUser = await User.aggregate([
-      { $match: { _id: new mongoose.Types.ObjectId(id) } },
-      {
-        $lookup: {
-          from: "logins",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "login",
-        },
-      },
-      { $unwind: "$login" },
-      {
-        $project: {
-          _id: 1,
-          fname: 1,
-          lname: 1,
-          age: 1,
-          dob: 1,
-          phone_number: 1,
-          created_at: 1,
-          email: "$login.email",
-          role_id: "$login.role_id",
-          tenant_id: "$login.tenant_id",
-          is_active: "$login.is_active",
-        },
-      },
-    ]);
-
+    if (req.body.age) {
+      user.age = req.body.age
+    }
+    if (req.body.dob) {
+      user.dob = req.body.dob
+    }
+    if (req.body.phone_number) {
+      user.phone_number = req.body.phone_number
+    }
+    await user.save()
+    await login.save()
     res.status(200).json({
       success: true,
       message: "User updated successfully",
-      data: updatedUser[0],
-    });
+    })
   } catch (error) {
-    console.error("Error updating user:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error updating user",
-      error: error.message,
-    });
-  } finally {
-    session.endSession();
+    console.log(error)
   }
 };
 
@@ -320,163 +419,135 @@ export const updateUser = async (req, res) => {
 
 // Delete user (complete deletion from both tables)
 export const deleteUser = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { id } = req.params;
-
-    // Validate user ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid user ID",
-      });
-    }
-
-    // Check if user exists and get their role
-    const userLogin = await Login.findOne({ user_id: id }).populate("role_id");
-    if (!userLogin) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    // Prevent deletion of super admin
-    const superAdminRoleId = "682c0541089c54ce890db8b3";
-    if (userLogin.role_id._id.toString() === superAdminRoleId) {
-      return res.status(403).json({
-        success: false,
-        message: "Cannot delete super admin user",
-      });
-    }
-
-    // Delete from login table first
-    await Login.deleteOne({ user_id: id }, { session });
-
-    // Then delete from user table
-    await User.deleteOne({ _id: id }, { session });
-
-    // Commit the transaction
-    await session.commitTransaction();
-
+    const user = await Login.findById(id)
+    await user.deleteOne()
     res.status(200).json({
       success: true,
       message: "User deleted successfully",
-    });
+    })
   } catch (error) {
-    // Abort transaction on error
-    await session.abortTransaction();
-    console.error("Error deleting user:", error);
     res.status(500).json({
       success: false,
       message: "Error deleting user",
       error: error.message,
     });
-  } finally {
-    // End the session
-    session.endSession();
   }
+
 };
 
 // Get all users for a tenant
 export const getUsersByTenant = async (req, res) => {
+  // try {
+  //   const { tenant_id } = req.params;
+  //   // const { page = 1, limit = 10, search = "" } = req.query;
+
+  //   // Validate tenant ID
+  //   if (!mongoose.Types.ObjectId.isValid(tenant_id)) {
+  //     return res.status(400).json({
+  //       success: false,
+  //       message: "Invalid tenant ID",
+  //     });
+  //   }
+
+  //   // Build search query
+  //   const searchQuery = search
+  //     ? {
+  //       $or: [
+  //         { fname: { $regex: search, $options: "i" } },
+  //         { lname: { $regex: search, $options: "i" } },
+  //         { "login.email": { $regex: search, $options: "i" } },
+  //       ],
+  //     }
+  //     : {};
+
+  //   // Get users with pagination
+  //   const users = await User.aggregate([
+  //     {
+  //       $lookup: {
+  //         from: "logins",
+  //         localField: "_id",
+  //         foreignField: "user_id",
+  //         as: "login",
+  //       },
+  //     },
+  //     { $unwind: "$login" },
+  //     {
+  //       $match: {
+  //         "login.tenant_id": new mongoose.Types.ObjectId(tenant_id),
+  //         ...searchQuery,
+  //       },
+  //     },
+  //     {
+  //       $project: {
+  //         _id: 1,
+  //         fname: 1,
+  //         lname: 1,
+  //         age: 1,
+  //         dob: 1,
+  //         phone_number: 1,
+  //         created_at: 1,
+  //         email: "$login.email",
+  //         role_id: "$login.role_id",
+  //         is_active: "$login.is_active",
+  //       },
+  //     },
+  //     // { $skip: (page - 1) * limit },
+  //     // { $limit: parseInt(limit) },
+  //   ]);
+
+  //   // Get total count for pagination
+  //   const total = await User.aggregate([
+  //     {
+  //       $lookup: {
+  //         from: "logins",
+  //         localField: "_id",
+  //         foreignField: "user_id",
+  //         as: "login",
+  //       },
+  //     },
+  //     { $unwind: "$login" },
+  //     {
+  //       $match: {
+  //         "login.tenant_id": new mongoose.Types.ObjectId(tenant_id),
+  //         ...searchQuery,
+  //       },
+  //     },
+  //     { $count: "total" },
+  //   ]);
+
+  //   res.status(200).json({
+  //     success: true,
+  //     data: users,
+  //     pagination: {
+  //       total: total[0]?.total || 0,
+  //       page: parseInt(page),
+  //       limit: parseInt(limit),
+  //       pages: Math.ceil((total[0]?.total || 0) / limit),
+  //     },
+  //   });
+  // } catch (error) {
+  //   console.error("Error fetching users:", error);
+  //   res.status(500).json({
+  //     success: false,
+  //     message: "Error fetching users",
+  //     error: error.message,
+  //   });
+  // }
+
+
   try {
     const { tenant_id } = req.params;
-    const { page = 1, limit = 10, search = "" } = req.query;
-
-    // Validate tenant ID
-    if (!mongoose.Types.ObjectId.isValid(tenant_id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid tenant ID",
-      });
-    }
-
-    // Build search query
-    const searchQuery = search
-      ? {
-        $or: [
-          { fname: { $regex: search, $options: "i" } },
-          { lname: { $regex: search, $options: "i" } },
-          { "login.email": { $regex: search, $options: "i" } },
-        ],
-      }
-      : {};
-
-    // Get users with pagination
-    const users = await User.aggregate([
-      {
-        $lookup: {
-          from: "logins",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "login",
-        },
-      },
-      { $unwind: "$login" },
-      {
-        $match: {
-          "login.tenant_id": new mongoose.Types.ObjectId(tenant_id),
-          ...searchQuery,
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          fname: 1,
-          lname: 1,
-          age: 1,
-          dob: 1,
-          phone_number: 1,
-          created_at: 1,
-          email: "$login.email",
-          role_id: "$login.role_id",
-          is_active: "$login.is_active",
-        },
-      },
-      { $skip: (page - 1) * limit },
-      { $limit: parseInt(limit) },
-    ]);
-
-    // Get total count for pagination
-    const total = await User.aggregate([
-      {
-        $lookup: {
-          from: "logins",
-          localField: "_id",
-          foreignField: "user_id",
-          as: "login",
-        },
-      },
-      { $unwind: "$login" },
-      {
-        $match: {
-          "login.tenant_id": new mongoose.Types.ObjectId(tenant_id),
-          ...searchQuery,
-        },
-      },
-      { $count: "total" },
-    ]);
-
+    const TenantData = await Login.find({ tenant_id: tenant_id }).populate("user_id")
+    console.log(TenantData, "TenantData")
     res.status(200).json({
       success: true,
-      data: users,
-      pagination: {
-        total: total[0]?.total || 0,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil((total[0]?.total || 0) / limit),
-      },
-    });
+      data: TenantData
+    })
+
   } catch (error) {
-    console.error("Error fetching users:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching users",
-      error: error.message,
-    });
+    console.log(error)
   }
 };
 
@@ -603,12 +674,21 @@ export const getAllUsers = async (req, res) => {
     "getAllUsers==================================================*******************"
   );
   console.log(req.user, "req.user");
+  // console.log(req.user)
 
   try {
-    const users = await User.find({});
+    // const loginData = await Login.find
+    const loginData = await Login.find({}).populate("user_id")
+
+    // console.log(loginData, "loginData")
+
+    // const organizedData =
+
     res.status(200).json({
       success: true,
-      data: users,
+      data: loginData
+
+
     });
   } catch (error) {
     console.error("Error fetching users:", error);

@@ -213,3 +213,30 @@ export const assignPermissionsToRole = async (req, res) => {
     });
   }
 };
+
+export const getRoleByName = async (req, res) => {
+  console.log('==============================')
+  try {
+    const { roleName } = req.params;
+    const role_name = roleName.toLowerCase().trim();
+    const role = await Role.findOne({ name: role_name });
+    console.log(role, "role");
+    if (!role) {
+      return res.status(404).json({
+        success: false,
+        message: "Role not found",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      data: role,
+      message: "Role fetched successfully",
+    });
+  } catch (error) {
+    console.error("Get role by name error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error fetching role",
+    });
+  }
+};

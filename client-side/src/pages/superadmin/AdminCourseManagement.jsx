@@ -100,7 +100,7 @@ const AdminCourseManagement = () => {
        </tr>
       </thead>
       <tbody>
-       {JSON.parse(localStorage.getItem("st-courses")).map((course, i) => (
+       {/* {JSON.parse(localStorage.getItem("st-courses")).map((course, i) => (
         <tr key={i}>
          <th scope="row">{i + 1}</th>
          <td>{course.course_title}</td>
@@ -126,7 +126,7 @@ const AdminCourseManagement = () => {
           </button>
          </td>
         </tr>
-       ))}
+       ))} */}
       </tbody>
      </table>
     </div>

@@ -13,208 +13,166 @@ const ViewCourseDetails = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const [expandedIndex, setExpandedIndex] = useState(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [moduleLessons, setModuleLessons] = useState({}); // Store lessons per module
+  const [isLoadingModules, setIsLoadingModules] = useState(false);
+  const [error, setError] = useState(null);
   const { courseDetails, modules, lessons } = useSelector(
     (state) => state.course
   );
+
+  console.log(courseDetails, 'course details')
+  console.log(modules, "modules===============================");
   console.log(lessons, "lessons===============================");
+
   useEffect(() => {
-    dispatch(fetchCourseDetails(id));
-    dispatch(fetchModulesByCourseId(id));
+    const fetchData = async () => {
+      setIsLoadingModules(true);
+      setError(null);
+      try {
+        await dispatch(fetchCourseDetails(id));
+        await dispatch(fetchModulesByCourseId(id));
+      } catch (err) {
+        setError("Failed to load course data");
+        console.error("Error fetching course data:", err);
+      } finally {
+        setIsLoadingModules(false);
+      }
+    };
+
+    fetchData();
   }, [id, dispatch]);
-  const handleExpand = (index) => {
-    setExpandedIndex(index);
-    dispatch(fetchLessonsByModuleId(modules[index]._id));
+
+  // Update moduleLessons when lessons change
+  useEffect(() => {
+    if (lessons && lessons.length > 0 && expandedIndex !== null && modules[expandedIndex]) {
+      const currentModuleId = modules[expandedIndex]._id;
+      setModuleLessons(prev => ({
+        ...prev,
+        [currentModuleId]: lessons
+      }));
+    }
+  }, [lessons, expandedIndex, modules]);
+
+  const handleExpand = async (index) => {
+    if (expandedIndex === index) {
+      setExpandedIndex(null);
+    } else {
+      setExpandedIndex(index);
+      const moduleId = modules[index]._id;
+
+      // Only fetch lessons if we don't have them cached
+      if (!moduleLessons[moduleId]) {
+        try {
+          await dispatch(fetchLessonsByModuleId(moduleId));
+        } catch (err) {
+          console.error("Error fetching lessons:", err);
+        }
+      }
+    }
+  };
+
+  const toggleDropdown = () => {
+    setDropdownOpen(!dropdownOpen);
+  };
+
+  // Calculate total duration for a module
+  const calculateModuleDuration = (moduleLessons) => {
+    if (!moduleLessons || moduleLessons.length === 0) return 0;
+    return moduleLessons.reduce((total, lesson) => {
+      return total + (parseInt(lesson.lesson_duration) || 0);
+    }, 0);
+  };
+
+  // Get lessons for a specific module
+  const getModuleLessons = (moduleId) => {
+    return moduleLessons[moduleId] || [];
   };
 
   console.log(courseDetails, "courseDetails===============================");
+
   return (
-    <div className="container mx-auto h-screen flex flex-col gap-4  ">
-      <h1 className="text-3xl font-bold">View Course Details</h1>
-      <div className="flex  justify-between gap-4  w-full h-full ">
-        {/* left section */}
-        <div className="border-r-2 w-2/3 p-4 flex flex-col gap-4 ">
-          <div className="flex flex-col gap-4">
-            <h1 className="text-2xl font-bold">
-              {courseDetails?.course_title} for{" "}
-              {courseDetails?.level?.course_level}
-            </h1>
-            <p className="text-sm text-gray-500">
-              {courseDetails.description} Lorem ipsum dolor sit Lorem ipsum
-              dolor sit amet, consectetur adipisicing elit. Accusantium sunt
-              repellendus asperiores consequuntur! Cupiditate quas recusandae
-              aliquam, sequi officiis accusamus eveniet esse tempore assumenda
-              sed praesentium, ipsa saepe, nesciunt ut? amet consectetur
-              adipisicing elit. Nihil libero, nulla, repellat numquam dolor
-              magnam neque iure minus, incidunt in enim sint asperiores.
-            </p>
-          </div>
-          <div className="flex flex-col gap-4">
-            {/* image section */}
-            <div className="flex flex-col gap-4">
-              <img
-                className="  h-full object-cover rounded-lg shadow-[0_5px_15px_rgba(0,0,0,0.35)] "
-                src={courseDetails?.image}
-                alt="course image"
-              />
-            </div>
-            <div className="flex flex-col gap-4 my-6   border-2 border-gray-200 rounded-lg p-4 text-gray-500 justify-center items-center">
-              {/* other details */}
-              {/* first row */}
-              <div className="flex w-full justify-between items-center ">
-                {/* left side */}
-                <div className="w-full">
-                  <p className="text-lg font-bold">Instructors</p>
-                  {courseDetails?.instructors &&
-                  courseDetails.instructors.length > 0 ? (
-                    courseDetails.instructors.map((instructor) => (
-                      <div
-                        className=""
-                        key={instructor._id}
-                        style={{ listStyleType: "disc" }}
-                      >
-                        <p className="text-sm font-bold text-gray-500">
-                          {instructor.fname + " " + instructor.lname}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm font-bold text-gray-500">
-                      No Instructor Assigned Yet
-                    </p>
-                  )}
-                </div>
-
-                {/* right side */}
-                <div className="w-full flex flex-col gap-2 text-right ">
-                  <p className="text-lg font-bold">Category</p>
-                  <div
-                    className="   "
-                    key={courseDetails?.category?._id}
-                    style={{ listStyleType: "disc" }}
-                  >
-                    <p className="text-sm font-bold  ">
-                      {courseDetails?.category?.category}
-                    </p>
-                  </div>
-                </div>
+    <div>
+      <section className="course-single-page">
+        <div className="container-fluid">
+          <div className="row">
+            <div className="col-xl-8 col-lg-8 pe-xl-5">
+              <div className="ratio ratio-16x9">
+                <iframe
+                  src="https://www.youtube.com/embed/zpOULjyy-n8?rel=0"
+                  title="YouTube video"
+                  allowFullScreen=""
+                />
               </div>
-              {/* second row */}
-              <div className="flex w-full justify-between items-center">
-                <div className="w-full">
-                  <p className="text-lg font-bold">Subcategory</p>
-                  <div className=" " key={courseDetails?.subcategory?._id}>
-                    <p className="text-sm font-bold ">
-                      {courseDetails?.subcategory?.subcategory_name}
-                    </p>
-                  </div>
-                </div>
-                <div className="w-full flex flex-col gap-2 text-right ">
-                  <p className="text-lg font-bold">Language</p>
-                  <div className=" " key={courseDetails?.language?._id}>
-                    <p className="text-sm font-bold ">
-                      {courseDetails?.language?.language}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              {/* third row */}
-              <div className="flex w-full justify-between items-center">
-                <div className="flex w-full justify-between items-center text-left">
-                  <div className="w-full flex flex-col gap-2">
-                    <p className="text-lg font-bold">Price</p>
-                    <p className="text-sm font-bold ">
-                      $ {courseDetails?.price || "567"}
-                    </p>
-                  </div>
-                </div>
-                {/* fourth row */}
-                <div className="flex w-full justify-between items-center text-right">
-                  <div className="w-full flex flex-col gap-2">
-                    <p className="text-lg font-bold">Max Enrollment</p>
-                    <p className="text-sm font-bold ">
-                      {courseDetails?.max_enrollment || "567"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              {/* fourth row start date and end date */}
-              <div className="flex w-full justify-between items-center">
-                <div className="w-full flex flex-col gap-2 text-left">
-                  <p className="text-lg font-bold">Start Date</p>
-                  <p className="text-sm font-bold ">
-                    {courseDetails?.start_date
-                      ? new Date(courseDetails?.start_date).toLocaleDateString()
-                      : "567"}
-                  </p>
-                </div>
-                <div className="w-full flex flex-col gap-2 text-right">
-                  <p className="text-lg font-bold">End Date</p>
-                  <p className="text-sm font-bold ">
-                    {courseDetails?.end_date
-                      ? new Date(courseDetails?.end_date).toLocaleDateString()
-                      : "567"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* right section course countnt */}
-        <div className="w-1/3 bg-white p-4 h-full rounded-xl shadow-sm overflow-y-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Content Covered
-            </h2>
-            <button
-              onClick={() => setExpandedIndex(null)}
-              className="text-sm font-medium text-purple-600 hover:underline"
-            >
-              Expand all
-            </button>
-          </div>
-
-          {modules?.map((module, index) => (
-            <div
-              key={module._id}
-              className="border-t py-3 cursor-pointer"
-              onClick={() => handleExpand(index)}
-            >
-              <div className="flex items-center justify-between  text-3xl  ">
-                <p className=" font-semibold flex items-center gap-2 text-indigo-600">
-                  {String(index + 1).padStart(2, "0")}{" "}
-                  <span className="text-lg text-gray-800">
-                    {module.module_title}
-                  </span>
+              <div className="course-description">
+                <h4>{courseDetails?.course_title || "Course Title"}</h4>
+                <p>
+                  {courseDetails?.description || "Course description will appear here."}
                 </p>
-                <span className=" text-2xl text-indigo-600">
-                  {expandedIndex === index ? "▲" : "▼"}
-                </span>
               </div>
-
-              {expandedIndex === index && (
-                <div className="pl-4 mt-2">
-                  {lessons?.length > 0 ? (
-                    lessons.map((lesson) => (
-                      <p
-                        key={lesson._id}
-                        className="text-sm flex items-center gap-4 font-semibold text-gray-600 py-1 border-b border-dotted hover:text-indigo-600 "
-                      >
-                        <TiTick size={20} className="text-green-500" />
-                        {lesson.lesson_title}
-                      </p>
-                    ))
-                  ) : (
-                    <p className="text-xs text-gray-400 italic">
-                      No lessons yet
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
-          ))}
+            <div className="col-xl-4 col-lg-4 course-content-div">
+              <h4>
+                <i className="fa-solid fa-book-open" /> Course Content
+              </h4>
+              <ul>
+                {error ? (
+                  <li>
+                    <div className="w-full text-left p-3 text-red-500">
+                      <p>{error}</p>
+                    </div>
+                  </li>
+                ) : isLoadingModules ? (
+                  <li>
+                    <div className="w-full text-left p-3 text-gray-500">
+                      <p>Loading modules...</p>
+                    </div>
+                  </li>
+                ) : modules && modules.length > 0 ? (
+                  modules.map((module, index) => {
+                    const currentModuleLessons = getModuleLessons(module._id);
+                    const totalDuration = calculateModuleDuration(currentModuleLessons);
+                    const isExpanded = expandedIndex === index;
+
+                    return (
+                      <li key={module._id}>
+                        <button
+                          onClick={() => handleExpand(index)}
+                          className="w-full text-left p-3 hover:bg-gray-50 rounded-md transition-colors"
+                        >
+                          <h5 className="font-medium text-gray-800 mb-1">
+                            {module.module_title || `Module ${index + 1}`}
+                          </h5>
+                          <p className="text-sm text-gray-500">
+                            {currentModuleLessons.length} lessons | {totalDuration}min
+                          </p>
+
+                          {isExpanded && currentModuleLessons.length > 0 && (
+                            <div className="mt-3 pl-4 space-y-2">
+                              {currentModuleLessons.map((lesson) => (
+                                <div key={lesson._id} className="flex items-center gap-2 text-sm text-gray-600">
+                                  <TiTick size={16} className="text-green-500 flex-shrink-0" />
+                                  <span>{lesson.lesson_title}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })
+                ) : (
+                  <li>
+                    <div className="w-full text-left p-3 text-gray-500">
+                      <p>No modules available for this course.</p>
+                    </div>
+                  </li>
+                )}
+              </ul>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

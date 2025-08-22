@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 // Dummy data for the dashboard
 
 const Dashboard = () => {
+ 
  const { tenantDetails } = useSelector((state) => state.superAdmin);
 
  return (

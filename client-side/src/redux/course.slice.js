@@ -10,6 +10,7 @@ export const fetchCourses = createAsyncThunk(
         withCredentials: true,
       }
     );
+    console.log(response.data.data, "response.data.data")
     return response.data.data;
   }
 );
@@ -63,6 +64,7 @@ export const fetchSubcategories = createAsyncThunk(
         withCredentials: true,
       }
     );
+      console.log(response.data.data, 'subcatedory slivce')
     return response.data.data;
   }
 );
@@ -137,8 +139,7 @@ export const createModuleAndAssignToCourse = createAsyncThunk(
   async (module) => {
     console.log(module, "module inside the slice 124");
     const response = await axios.post(
-      `${
-        import.meta.env.VITE_API_URL
+      `${import.meta.env.VITE_API_URL
       }/modules/create-module-and-assign-to-course/${module.course_id}`,
       module,
       {
@@ -155,8 +156,7 @@ export const searchCourses = createAsyncThunk(
   async (searchValue) => {
     console.log(searchValue, "searchValue========================");
     const response = await axios.get(
-      `${
-        import.meta.env.VITE_API_URL
+      `${import.meta.env.VITE_API_URL
       }/courses/search/course/value/${searchValue}`,
       {
         withCredentials: true,
@@ -170,16 +170,20 @@ export const searchCourses = createAsyncThunk(
 export const fetchModulesByCourseId = createAsyncThunk(
   "tenant/fetchModulesByCourseId",
   async (courseId) => {
-    const response = await axios.get(
-      `${
-        import.meta.env.VITE_API_URL
-      }/modules/get-modules-associated-with-the-course/${courseId}`,
-      {
-        withCredentials: true,
-      }
-    );
-    console.log(response, "response inside the fetchModulesByCourseId");
-    return response.data.data;
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL
+        }/modules/get-modules-associated-with-the-course/${courseId}`,
+        {
+          withCredentials: true,
+        }
+      );
+      console.log(response, "response inside the fetchModulesByCourseId");
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching modules:", error);
+      throw error;
+    }
   }
 );
 
@@ -211,14 +215,19 @@ export const fetchLessons = createAsyncThunk(
 export const fetchLessonsByModuleId = createAsyncThunk(
   "tenant/fetchLessonsByModuleId",
   async (moduleId) => {
-    const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/lessons/${moduleId}`
-    );
-    console.log(
-      response.data.data,
-      "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@2response inside the fetchLessonsByModuleId"
-    );
-    return response.data.data;
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/lessons/${moduleId}`
+      );
+      console.log(
+        response.data.data,
+        "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@2response inside the fetchLessonsByModuleId"
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching lessons:", error);
+      throw error;
+    }
   }
 );
 
@@ -257,6 +266,7 @@ const courseSlice = createSlice({
     levels: [],
     languages: [],
     lessons: [],
+    modules: [],
     courseDetails: {},
   },
   reducers: {},

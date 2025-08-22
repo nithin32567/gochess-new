@@ -11,7 +11,6 @@ const courseSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
     },
     short_description: {
       type: String,

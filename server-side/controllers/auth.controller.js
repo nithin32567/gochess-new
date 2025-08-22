@@ -44,6 +44,7 @@ export const generatePassword = async (req, res) => {
 
     // Activate tenant
     await Tenant.findByIdAndUpdate(loginEntry.tenant_id, { is_active: true });
+    await Login.findByIdAndUpdate(loginEntry._id, { is_active: true });
 
     return res.status(200).json({
       success: true,

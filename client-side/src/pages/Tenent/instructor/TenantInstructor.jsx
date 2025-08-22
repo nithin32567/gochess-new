@@ -3,14 +3,12 @@ import ListInstructors from "../../../components/tenants/ListInstructors";
 import axios from "axios";
 import AddInstructorModal from "../../../components/tenants/AddInstructorModal";
 import EditUserModal from "../../common/editUserModal/EditUserModal";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchInstructors } from "@/redux/tenant.slice";
+import { useDispatch } from "react-redux";
+import { fetchInstructors, searchInstructors } from "../../../redux/tenant.slice"
 import Popup from "../../../components/popup";
 
 const TenantInstructor = () => {
  const dispatch = useDispatch();
- // const { instructors } = useSelector((state) => state.tenant);
- const [instructors, setInstructors] = useState();
  const [search, setSearch] = useState("");
  const [openAddInstructorModal, setOpenAddInstructorModal] = useState(false);
  const [instructorRoleId, setInstructorRoleId] = useState(null);
@@ -18,16 +16,27 @@ const TenantInstructor = () => {
 
  useEffect(() => {
   dispatch(fetchInstructors());
- }, []);
+ }, [dispatch]);
 
  useEffect(() => {
   (async () => {
-   const response = await axios.get(
-    `${import.meta.env.VITE_API_URL}/roles`,
-    { withCredentials: true }
-   );
-   const instructor = response?.data?.data?.find(e => e.name === "instructor");
-   setInstructorRoleId(instructor._id);
+   try {
+    const response = await axios.get(
+     `${import.meta.env.VITE_API_URL}/roles`,
+     { withCredentials: true }
+    );
+    console.log("Roles response:", response.data);
+    const instructor = response?.data?.data?.find(e => e.name === "instructor");
+    console.log("Found instructor role:", instructor);
+    if (!instructor) {
+     console.error("Instructor role not found!");
+     return;
+    }
+    setInstructorRoleId(instructor._id);
+    console.log("Set instructor role ID:", instructor._id);
+   } catch (error) {
+    console.error("Error fetching roles:", error);
+   }
   })();
  }, []);
 
@@ -35,21 +44,15 @@ const TenantInstructor = () => {
   if (search === "") {
    dispatch(fetchInstructors());
   } else {
-   handleSearch();
+   dispatch(searchInstructors(search));
   }
- }, [search]);
+ }, [search, dispatch]);
 
- const handleSearch = async () => {
-  try {
-   const response = await axios.get(
-    `${import.meta.env.VITE_API_URL}/instructors/search/${search}`,
-    {
-     withCredentials: true,
-    }
-   );
-   setInstructors(response.data.data);
-  } catch (error) {
-   console.log(error);
+ const handleSearch = () => {
+  if (search === "") {
+   dispatch(fetchInstructors());
+  } else {
+   dispatch(searchInstructors(search));
   }
  };
 
@@ -98,7 +101,7 @@ const TenantInstructor = () => {
      <div className="flex justify-between items-center w-full">
      </div>
 
-     <ListInstructors instructors={instructors} />
+     <ListInstructors />
 
      {openAddInstructorModal && <Popup>
       <AddInstructorModal

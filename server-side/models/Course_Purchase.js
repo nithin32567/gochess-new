@@ -12,6 +12,11 @@ const coursePurchaseSchema = new mongoose.Schema({
         ref: 'Course',
         required: true
     },
+    tenant_id:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'Tenant',
+        required:true
+    },
     purchased_at: {
         type: Date,
         required: true,
@@ -36,9 +41,6 @@ const coursePurchaseSchema = new mongoose.Schema({
 
 // Create compound index for user_id and course_id to prevent duplicate purchases
 coursePurchaseSchema.index({ user_id: 1, course_id: 1 }, { unique: true });
-
-// Create index for valid_till to efficiently query active purchases
-coursePurchaseSchema.index({ valid_till: 1 });
 
 // Create index for purchased_at to efficiently query purchase history
 coursePurchaseSchema.index({ purchased_at: 1 });

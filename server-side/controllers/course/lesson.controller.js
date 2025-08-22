@@ -177,16 +177,10 @@ export const getLessons = async (req, res) => {
     // organize lessons into single keyvalue pairs
 
     console.log(lessons, "lessons==========================================");
-    if (!lessons || lessons.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No lessons found.",
-      });
-    }
-    // console.log(lessons, "lessons==========================================");
+    // Return empty array instead of 404 when no lessons found
     return res.status(200).json({
       success: true,
-      data: lessons,
+      data: lessons || [],
     });
   } catch (error) {
     return res.status(500).json({
@@ -247,12 +241,15 @@ export const editLesson = async (req, res) => {
       lesson_description,
     } = req.body;
 
-    if (!lesson) {
+    // First check if lesson exists
+    const existingLesson = await Lesson.findById(id);
+    if (!existingLesson) {
       return res.status(404).json({
         success: false,
         message: "Lesson not found",
       });
     }
+
     const lesson = await Lesson.findByIdAndUpdate(
       id,
       {
@@ -338,6 +335,35 @@ export const getLessonContent = async (req, res) => {
     });
   } catch (error) {
     console.error("Get lesson content error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const deleteLesson = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if lesson exists
+    const lesson = await Lesson.findById(id);
+    if (!lesson) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson not found",
+      });
+    }
+
+    // Delete the lesson
+    await Lesson.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lesson deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete lesson error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",

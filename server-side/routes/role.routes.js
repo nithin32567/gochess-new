@@ -6,6 +6,7 @@ import {
   updateRole,
   deleteRole,
   assignPermissionsToRole,
+  getRoleByName,
 } from "../controllers/role.controller.js";
 import { isSuperAdmin } from "../middleware/isSuperAdmin.js";
 import { tenantMiddleware } from "../middleware/tenant.middleware.js";
@@ -23,6 +24,8 @@ router
 
 router.route("/:roleId").get(getRoleById).patch(updateRole);
 
+// Get role by name
+router.get("/name/:roleName", tenantMiddleware, getRoleByName);
 // Assign permissions to role
 router.post("/:roleId/permissions", assignPermissionsToRole);
 

@@ -1,16 +1,14 @@
 import mongoose from "mongoose";
+import { type } from "os";
 
 const moduleSchema = new mongoose.Schema(
   {
-    course_id: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Course",
-        required: true,
-        index: true,
-        default: [],
-      },
-    ],
+    course_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
+      required: true,
+      index: true,
+    },  
     module_title: {
       type: String,
       required: true,

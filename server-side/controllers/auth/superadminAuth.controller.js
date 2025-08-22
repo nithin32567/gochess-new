@@ -56,7 +56,7 @@ export const loginSuperAdmin = async (req, res) => {
         id: superAdmin._id,
         email: superAdmin.email,
         role_id: superAdmin.role_id,
-        role: ROLE_IDS.SUPER_ADMIN,
+        role: superAdmin.role_id.name,
       },
       process.env.JWT_SECRET,
       {
@@ -79,7 +79,6 @@ export const loginSuperAdmin = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Login successful",
-      token,
       data: {
         id: superAdmin._id,
         name: superAdmin.name,
@@ -122,6 +121,7 @@ export const logoutSuperAdmin = (req, res) => {
 
 // Get Current Super Admin
 export const getCurrentSuperAdmin = async (req, res) => {
+  console.log('hello there')
   try {
     const superAdmin = await SuperAdmin.findById(req.user.id)
       .select("-password")
@@ -149,4 +149,3 @@ export const getCurrentSuperAdmin = async (req, res) => {
     });
   }
 };
-

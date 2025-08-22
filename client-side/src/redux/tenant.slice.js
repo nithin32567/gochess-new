@@ -11,12 +11,14 @@ export const fetchTenant = createAsyncThunk("tenant/fetchTenant", async () => {
 export const fetchStudents = createAsyncThunk(
   "tenant/fetchStudents",
   async () => {
+    console.log('fetchStudents call')
     const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/tenant/students`,
+      `${import.meta.env.VITE_API_URL}/students`,
       {
         withCredentials: true,
       }
     );
+    console.log("students response", response.data);
     return response.data;
   }
 );
@@ -38,14 +40,34 @@ export const fetchInstructors = createAsyncThunk(
 export const createInstructor = createAsyncThunk(
   "tenant/createInstructor",
   async (instructor) => {
-    const response = await axios.post(
-      `${import.meta.env.VITE_API_URL}/users`,
-      instructor,
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/users`,
+        instructor,
+        {
+          withCredentials: true,
+        }
+      );
+      console.log("API Response:", response);
+      console.log("Response data:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("API Error:", error);
+      console.error("Error response:", error.response);
+      throw error;
+    }
+  }
+);
+
+export const searchInstructors = createAsyncThunk(
+  "tenant/searchInstructors",
+  async (searchTerm) => {
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/instructors/search/${searchTerm}`,
       {
         withCredentials: true,
       }
     );
-    console.log(response, "response inside the createInstructor");
     return response.data.data;
   }
 );
@@ -56,6 +78,8 @@ const tenantSlice = createSlice({
     tenant: null,
     students: [],
     instructors: [],
+    loading: false,
+    error: null,
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -66,11 +90,38 @@ const tenantSlice = createSlice({
       state.students = action.payload;
     });
 
+    // Instructor loading states
+    builder.addCase(fetchInstructors.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
     builder.addCase(fetchInstructors.fulfilled, (state, action) => {
       state.instructors = action.payload;
+      state.loading = false;
     });
+    builder.addCase(fetchInstructors.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error.message;
+    });
+
     builder.addCase(createInstructor.fulfilled, (state, action) => {
-      state.instructors.push(action.payload);
+      if (action.payload.success && action.payload.data) {
+        state.instructors.push(action.payload.data);
+      }
+    });
+
+    // Search instructor loading states
+    builder.addCase(searchInstructors.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(searchInstructors.fulfilled, (state, action) => {
+      state.instructors = action.payload;
+      state.loading = false;
+    });
+    builder.addCase(searchInstructors.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error.message;
     });
   },
 });

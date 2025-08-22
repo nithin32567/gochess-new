@@ -17,7 +17,8 @@ const TenentDashBoard = () => {
  const dispatch = useDispatch();
  const { students, instructors } = useSelector((state) => state.tenant);
  const { courses } = useSelector((state) => state.course);
- console.log(students, courses, instructors);
+ console.log(courses)
+ // console.log(students, courses, instructors);
  // !===========================================================
 
  useEffect(() => {

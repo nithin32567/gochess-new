@@ -1,70 +1,28 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import CreateSubCategoryModal from "../CreateSubCategoryModal";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import {
  fetchCategories,
  fetchSubcategories,
  fetchLevels,
  fetchLanguages,
- createCourse,
  fetchSubcategoriesByCategory,
  fetchCourses,
 } from "@/redux/course.slice";
-import { XIcon } from "lucide-react";
 import { toast } from "react-toastify";
-const HardCategories = {
- "Technology & Computer Science": [
-  "Artificial Intelligence",
-  "Algorithms & Data Structures",
-  "Computer Security / Cybersecurity",
-  "Computer Graphics"
- ],
- "Business & Management": [
-  "Human Resource Management",
-  "Finance & Accounting",
-  "Marketing & Customer",
-  "Operations & Strategy"
- ],
- "Economics & Finance": [
-  "Microeconomics",
-  "Macroeconomics",
-  "Public Finance & Policy",
-  "Development or Health Economics"
- ],
- "Social Sciences & Humanities": [
-  "Psychology",
-  "Political Science / Global Politics",
-  "Philosophy & Ethics",
-  "History / Cultural Studies"
- ],
- "Science & Engineering": [
-  "Computer Architecture & Embedded Systems",
-  "Computational Biology / Bioinformatics",
-  "Scientific Computing & Numerical Analysis",
-  "Environmental / Civil Engineering"
- ],
- "Education & Teaching": [
-  "Educational Technology & e-Learning",
-  "Curriculum Design & Pedagogy",
-  "Special & Inclusive Education",
-  "Assessment & Evaluation Methods"
- ],
- "Health & Public Health": [
-  "Health Systems & Governance",
-  "Health Economics & Financing",
-  "Global & Environmental Health",
-  "Health Promotion & Behavioural Interventions"
- ]
-}
 const AddCourseModal = ({ setIsAddCourseModalOpen }) => {
+ const { categories, levels, subcategories, languages } = useSelector((state) => state.course);
+
+ console.log(subcategories, 'subcategory modal')
  const dispatch = useDispatch();
- const { categories, subcategories, levels, languages } = useSelector(
-  (state) => state.course
- );
+
+
 
  const [isAddSubcategoryModalOpen, setIsAddSubcategoryModalOpen] =
   useState(false);
+
 
  // drop down values are stored only after it is changed
  const [formData, setFormData] = useState({
@@ -81,6 +39,8 @@ const AddCourseModal = ({ setIsAddCourseModalOpen }) => {
   drip_content_enabled: false,
  });
 
+ console.log(formData, "formData course 85")
+
  console.log(formData, "formdata to be submitted");
  const handleChange = (e) => {
   const { name, value, type, checked } = e.target;
@@ -89,6 +49,10 @@ const AddCourseModal = ({ setIsAddCourseModalOpen }) => {
    [name]: type === "checkbox" ? checked : value,
   }));
  };
+
+
+
+
  useEffect(() => {
   dispatch(fetchCategories());
   dispatch(fetchSubcategories());
@@ -96,22 +60,45 @@ const AddCourseModal = ({ setIsAddCourseModalOpen }) => {
   dispatch(fetchLanguages());
  }, [dispatch]);
 
+ // set initial selected category when categories prop loads
+ useEffect(() => {
+  if (!formData.category && Array.isArray(categories) && categories.length > 0) {
+   setFormData((prev) => ({ ...prev, category: categories[0]._id }));
+  }
+ }, [categories, formData.category]);
+
+ // when subcategories list updates, ensure a default subcategory is selected
+ useEffect(() => {
+  if (Array.isArray(subcategories) && subcategories.length > 0) {
+   const hasExisting = subcategories.some((s) => s._id === formData.subcategory);
+   if (!hasExisting) {
+    setFormData((prev) => ({ ...prev, subcategory: subcategories[0]._id }));
+   }
+  }
+ }, [subcategories, formData.subcategory]);
+
  // check the date is not previous and
  // start date should be before end date
 
  function checkDate() {
   const startDate = new Date(formData.start_date);
   const endDate = new Date(formData.end_date);
-  if (startDate >= new Date()) {
+  const currentDate = new Date();
+  
+  // Check if start date is in the past first
+  if (startDate < currentDate) {
    toast.error("Start date cannot be in the past");
    console.log("start date is in the past");
    return false;
   }
+  
+  // Only check end date if start date is valid
   if (startDate > endDate) {
    toast.error("Start date cannot be after end date");
    console.log("start date is after end date");
    return false;
   }
+  
   return true;
  }
  const handleSubmit = async (e) => {
@@ -146,15 +133,17 @@ const AddCourseModal = ({ setIsAddCourseModalOpen }) => {
     language: formData.language,
     level: formData.level,
    };
-   console.log(courseData, "courseData inside the handleSubmit");
-   const storedCourses = JSON.parse(localStorage.getItem("st-courses") ?? "[]");
-   storedCourses.push(courseData);
-   localStorage.setItem("st-courses", JSON.stringify(storedCourses));
-   // await dispatch(createCourse(courseData));
-   // setIsAddCourseModalOpen(false);
-   toast.success("Course added successfully");
-   setIsAddCourseModalOpen(false);
-   // dispatch(fetchCourses());
+       console.log(courseData, "courseData inside the handleSubmit");
+    
+    // Call the API to add the course
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/courses`, courseData, {
+     withCredentials: true,
+    });
+    console.log(response, "response in add course");
+    
+    toast.success("Course added successfully");
+    setIsAddCourseModalOpen(false);
+    dispatch(fetchCourses());
   } catch (error) {
    console.error("Error adding course:", error);
   }
@@ -164,9 +153,11 @@ const AddCourseModal = ({ setIsAddCourseModalOpen }) => {
   // fetch related categpries on list or list all categories
 
   if (formData.category) {
+   // reset subcategory while loading new list
+   setFormData((prev) => ({ ...prev, subcategory: "" }));
    dispatch(fetchSubcategoriesByCategory(formData.category));
   }
- }, [formData.category]);
+ }, [formData.category, dispatch]);
 
  return (
   <>
@@ -250,9 +241,6 @@ const AddCourseModal = ({ setIsAddCourseModalOpen }) => {
       <option disabled value="">
        Select Category
       </option>
-      {Object.entries(HardCategories).map(([a], i) => (
-       <option key={i} value={a}>{a}</option>
-      ))}
       {categories.map((category, index) => (
        <option key={index} value={category._id}>
         {category.category}
@@ -277,12 +265,9 @@ const AddCourseModal = ({ setIsAddCourseModalOpen }) => {
       <option disabled value="">
        Select Subcategory
       </option>
-      {HardCategories[formData.category]?.map((a, i) => (
-       <option key={i} value={a}>{a}</option>
-      ))}
-      {subcategories.map((subcategory, index) => (
-       <option key={index} value={subcategory._id}>
-        {subcategory.subcategory_name}
+      {subcategories?.map((item, index) => (
+       <option key={index} value={item._id}>
+        {item?.subcategory_name}
        </option>
       ))}
      </select>
@@ -310,10 +295,6 @@ const AddCourseModal = ({ setIsAddCourseModalOpen }) => {
       <option disabled value="">
        Select Language
       </option>
-      <option value={"English"}>English</option>
-      <option value={"Malayalam"}>Malayalam</option>
-      <option value={"Hindi"}>Hindi</option>
-      <option value={"Tamil"}>Tamil</option>
       {languages.map((language, index) => (
        <option key={index} value={language._id}>
         {language.language}
@@ -338,9 +319,6 @@ const AddCourseModal = ({ setIsAddCourseModalOpen }) => {
       <option disabled value="">
        Select Level
       </option>
-      <option value={"Basic"}>Basic</option>
-      <option value={"Intermediate"}>Intermediate</option>
-      <option value={"Professional"}>Professional</option>
       {levels.map((level, index) => (
        <option key={index} value={level._id}>
         {level.course_level}
@@ -425,9 +403,9 @@ const AddCourseModal = ({ setIsAddCourseModalOpen }) => {
       </button>
      </div>
      <div className="col-lg-4">
-      <button type="submit" className="addtrainer-btn">
-       Add Course
-      </button>
+             <button type="submit" className="addtrainer-btn">
+        Add Course
+       </button>
      </div>
     </div>
    </form>

@@ -6,7 +6,7 @@ const lessonTypeSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      enum: ["video", "pdf", "quiz", "live", "assignment", "text"],
+      enum: ["video", "pdf", "quiz", "live", "assignment", "text","playground"],
       trim: true,
     },
   },

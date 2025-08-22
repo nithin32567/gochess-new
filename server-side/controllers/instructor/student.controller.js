@@ -1,48 +1,114 @@
 import Login from "../../models/login.model.js";
 import User from "../../models/user.model.js";
+import sendMail from "../../utils/senMail.js";
+import mongoose from "mongoose";
+import Crypto from "crypto";
+import Role from "../../models/role.model.js";
+import CoursePurchase from "../../models/Course_Purchase.js";
+import Course from "../../models/Course.js";
 
 export const getStudentsByTenant = async (req, res) => {
   try {
-    console.log("getStudentsByTenant called",req.user);
-    
-    // Get the tenant_id from the authenticated user
+    console.log("**************************");
+    console.log("getStudentsByTenant called", req.user);
+
     const { tenant_id } = req.user;
-    
+
     if (!tenant_id) {
       return res.status(400).json({
         success: false,
-        message: "Tenant ID is required"
+        message: "Tenant ID is required",
       });
     }
 
-    const students = await Login.find({
-        tenant_id: tenant_id,
-        role_id: "682dfad99aabacbc92fab14d"
-      })
-      .populate('user_id', 'fname lname email phone_number dob age tenant_id')
-      .select('user_id tenant_id created_at updated_at');
-      
-    // Flatten the user_id fields into the top-level object
-    const flatStudents = students.map(s => ({
-      _id: s.user_id?._id || s._id,
-      fname: s.user_id?.fname || "",
-      lname: s.user_id?.lname || "",
-      email: s.user_id?.email || "",
-      phone_number: s.user_id?.phone_number || "",
-      dob: s.user_id?.dob || "",
-      age:s.user_id?.age || "",
-      tenant_id: s.user_id?.tenant_id || s.tenant_id,
-      created_at: s.created_at,
-      updated_at: s.updated_at
-    }));
+   
+    const users = await Login.findOne({ _id: req.user.id }).populate('user_id');
 
-    console.log(`Found ${flatStudents.length} students for tenant: ${tenant_id}`, flatStudents);
+    const assignedCourses = await Course.find({
+      instructors: { $in: [users.user_id._id] },
+    });
+    // console.log('assignedcur',assignedCourses);
+    
+
+    const courseIds = assignedCourses.map(course => course._id);
+    if (courseIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No courses assigned to instructor",
+        data: [],
+        count: 0,
+      });
+    }
+
+    // console.log('Course IDs assigned to instructor:', courseIds);
+
+    // Step 3: Find course purchases for these courses
+    const coursePurchases = await CoursePurchase.find({
+      course_id: { $in: courseIds },
+    }).populate({
+      path: 'user_id',
+      select: 'fname lname email phone_number dob age tenant_id'
+    });
+
+    console.log('Course purchases:', coursePurchases);
+
+    // Get unique students from course purchases
+    const uniqueStudents = [];
+    const seenStudentIds = new Set();
+
+    // coursePurchases.forEach(purchase => {
+    //   if (purchase.user_id && !seenStudentIds.has(purchase.user_id._id.toString())) {
+    //     seenStudentIds.add(purchase.user_id._id.toString());
+    //     // console.log(purchase);
+        
+    //     uniqueStudents.push({
+    //       user_id: purchase.user_id._id,
+    //       fname: purchase.user_id.fname,
+    //       lname: purchase.user_id.lname,
+    //       email: purchase.user_id.email,
+    //       phone_number: purchase.user_id.phone_number,
+    //       dob: purchase.user_id.dob,
+    //       age: purchase.user_id.age,
+    //       tenant_id: purchase.user_id.tenant_id,
+    //       purchase_date: purchase.createdAt,
+    //       course_id: purchase.course_id,
+    //       is_active: purchase.user_id.is_active
+    //     });
+    //   }
+    // });
+
+    // console.log('Unique students:', uniqueStudents);
+
+    for (const purchase of coursePurchases) {
+      const studentId = purchase.user_id?._id?.toString();
+      if (studentId && !seenStudentIds.has(studentId)) {
+        seenStudentIds.add(studentId);
+    
+        // 🔍 Fetch login record to get status
+        const loginData = await Login.findOne({ user_id: studentId });
+    
+        uniqueStudents.push({
+          user_id: purchase.user_id._id,
+          fname: purchase.user_id.fname,
+          lname: purchase.user_id.lname,
+          email: purchase.user_id.email,
+          phone_number: purchase.user_id.phone_number,
+          dob: purchase.user_id.dob,
+          age: purchase.user_id.age,
+          tenant_id: purchase.user_id.tenant_id,
+          purchase_date: purchase.createdAt,
+          course_id: purchase.course_id,
+          is_active: loginData?.is_active || false  // fallback if null
+        });
+      }
+    }
+    
 
     return res.status(200).json({
       success: true,
       message: "Students fetched successfully",
-      data: flatStudents,
-      count: flatStudents.length
+      data: uniqueStudents,
+      count: uniqueStudents.length,
     });
 
   } catch (error) {
@@ -50,16 +116,21 @@ export const getStudentsByTenant = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch students",
-      error: error.message
+      error: error.message,
     });
   }
 };
 
-
 export const createStudent = async (req, res) => {
+  // Start a session for transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { tenant_id } = req.user;
     const { fname, lname, email, phone_number, dob, age } = req.body;
+    console.log('req.user',req.user);
+    
 
     // Validate required fields
     if (!fname || !lname || !email || !phone_number || !dob || !age) {
@@ -79,52 +150,84 @@ export const createStudent = async (req, res) => {
       });
     }
 
-    // 1. Create User
-    const newUser = new User({
-      fname,
-      lname,
-      email,
-      phone_number,
-      dob,
-      age,
-    });
-    await newUser.save();
+    // Find student role dynamically
+    const roleFind = await Role.findOne({ name: "student" });
+    if (!roleFind) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: "Student role not found"
+      });
+    }
+    const role_id = roleFind._id;
 
-    // 2. Create Login (replace 'role_id' with your actual student role ObjectId)
-    const studentRoleId = "682dfad99aabacbc92fab14d"; // <-- your student role ObjectId
-    const newLogin = new Login({
-      user_id: newUser._id,
-      tenant_id,
-      email,
-      role_id: studentRoleId,
-      is_active: true,
-    });
-    await newLogin.save();
+    // Generate password setup token
+    const passwordSetupToken = Crypto.randomBytes(32).toString("hex");
+    const tokenExpiry = Date.now() + 24 * 60 * 60 * 1000;
+
+    // 1. Create User within transaction
+    const newUserArr = await User.create([
+      {
+        fname,
+        lname,
+        email,
+        phone_number,
+        dob,
+        age,
+        tenant_id,
+      },
+    ], { session });
+    const newUser = newUserArr[0];
+
+    // 2. Create Login within transaction
+    await Login.create([
+      {
+        user_id: newUser._id,
+        tenant_id,
+        email,
+        role_id,
+        passwordSetupToken,
+        tokenExpiry,
+        is_active: false,
+      },
+    ], { session });
+
+    // Prepare email
+    const setupLink = `${process.env.CORS_ORIGIN}/common/generate-password?token=${passwordSetupToken}`;
+
+    // Try to send email
+    try {
+      await sendMail({
+        to: email,
+        subject: "Welcome to LMS SaaS",
+        text: `Click this link to set your password: ${setupLink}`,
+      });
+    } catch (emailError) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send email. Student creation aborted.",
+        error: emailError.message,
+      });
+    }
+
+    // If everything is successful, commit the transaction
+    await session.commitTransaction();
+    session.endSession();
 
     return res.status(201).json({
       success: true,
-      message: "Student created successfully",
-      data: {
-        user: {
-          _id: newUser._id,
-          fname: newUser.fname,
-          lname: newUser.lname,
-          email: newUser.email,
-          phone_number: newUser.phone_number,
-          dob: newUser.dob,
-          age: newUser.age,
-        },
-        login: {
-          _id: newLogin._id,
-          user_id: newLogin.user_id,
-          tenant_id: newLogin.tenant_id,
-          email: newLogin.email,
-          role_id: newLogin.role_id,
-        }
-      }
+      message: "Student created successfully. Email sent.",
+      // Optionally return newUser or login info if needed
     });
-
   } catch (error) {
+    // Only abort transaction if it hasn't been committed yet
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+    session.endSession();
     console.error("Error creating student:", error);
     return res.status(500).json({
       success: false,

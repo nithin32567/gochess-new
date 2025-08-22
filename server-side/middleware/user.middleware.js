@@ -5,6 +5,10 @@ export const userMiddleware = async (req, res, next) => {
 try {
     console.log("auth middleware");
   const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
+  console.log('==========================================================================');
+  
+  console.log(req.cookies.token);
+  
   if (!token) {
     return res.status(401).json({ message: "Unauthorized" });
   }

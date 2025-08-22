@@ -5,6 +5,8 @@ import MeetingCredential from '../../models/meeting.credential.model.js';
 
 // Zoom API configuration
 
+
+
 const getZoomToken = async (zoomApiKey,zoomApiSecret,ZOOM_ACCOUNT_ID) => {
     
     try {
@@ -52,8 +54,43 @@ const getAllZoomUsers = async (accessToken) => {
   };
   
 
+const getpastData = async (tenantId, meetingid) => {
+    // const tenantId = req.user.tenant_id;
+    // const {meetingid} = req.body;
+    console.log('tenn',tenantId);
+    
+    const zoomapikey = await MeetingCredential.findOne({ tenantId:tenantId });
+    
+    if (!zoomapikey) {
+        throw new Error('Zoom API key not found');
+    }
+
+    const ZOOM_BASE_URL = 'https://api.zoom.us/v2';
+    const token = await getZoomToken(zoomapikey.zoomApiKey, zoomapikey.zoomApiSecret,zoomapikey.zoomApiId);
+
+    try {
+        const zoomResponse = await axios.get(`${ZOOM_BASE_URL}/past_meetings/${meetingid}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      
+        return ({
+          meeting_details: zoomResponse.data
+        });
+      } catch (err) {
+        console.error('Zoom API error:', err.response?.data || err.message);
+        throw new Error('Failed to fetch past meeting data');
+      }
+      
+}
+
+
 export const getMeetings = async (req, res) => {
     const tenantId = req.user.tenant_id;
+    console.log('tenn',tenantId);
+    
     const zoomapikey = await MeetingCredential.findOne({ tenantId:tenantId });
     
     if (!zoomapikey) {
@@ -68,7 +105,7 @@ export const getMeetings = async (req, res) => {
         // getAllZoomUsers(token)
 
         // const token = await getZoomToken('5sThQbk1QaelICpRZAFqRQ', 'fBQMp3vPGYM8K8Psc4yLk3XHio59oMOU','wJULhOEiSRyDYjcdzeaNyQ');
-        getAllZoomUsers(token)
+        // getAllZoomUsers(token)
 
 
 
@@ -115,7 +152,8 @@ export const getMeetings = async (req, res) => {
                     endTime.setHours(endHours, endMinutes, 0, 0);
                     
                     let updatedStatus = dbMeeting.status;
-
+                    // console.log('datad',zoomMeeting.id);
+                    
                     // Only update status if it's not already completed or cancelled
                     if (updatedStatus !== 'completed' && updatedStatus !== 'cancelled') {
                         const nowTimestamp = now.getTime();
@@ -124,6 +162,24 @@ export const getMeetings = async (req, res) => {
 
                         if (nowTimestamp > endTimestamp) {
                             updatedStatus = 'completed';
+                            console.log('completed');
+                            try{
+                                const pastdata = await getpastData(tenantId,zoomMeeting.id)
+                                console.log('=======================');
+                                
+                                console.log(pastdata);
+                                dbMeeting.meeting_duration_completed = pastdata.meeting_details.duration
+                                dbMeeting.meeting_participants_count=pastdata.meeting_details.participants_count
+                                console.log('======================='); 
+                            }
+                            catch(err){
+                                console.log('error');
+                                dbMeeting.meeting_duration_completed = null
+                                dbMeeting.meeting_participants_count= null
+                                
+                            }
+                            
+                            
                         } else if (nowTimestamp >= startTimestamp && nowTimestamp <= endTimestamp) {
                             updatedStatus = 'ongoing';
                         } else {
@@ -131,12 +187,14 @@ export const getMeetings = async (req, res) => {
                         }
 
                         // Update status in database if it has changed
-                        if (updatedStatus !== dbMeeting.status) {
+                        if (updatedStatus !== dbMeeting.status ) {
                             try {
                                 await LiveSession.findByIdAndUpdate(
                                     dbMeeting._id,
                                     { 
                                         status: updatedStatus,
+                                        meeting_duration_completed:dbMeeting.meeting_duration_completed,
+                                        meeting_participants_count:dbMeeting.meeting_participants_count,                                        
                                         updated_at: new Date()
                                     },
                                     { new: true }
@@ -171,6 +229,8 @@ export const getMeetings = async (req, res) => {
                         host_url: dbMeeting.host_url,
                         join_url: zoomMeeting.join_url,
                         status: updatedStatus,
+                        meeting_duration_completed:dbMeeting?.meeting_duration_completed|"",
+                        meeting_participants_count:dbMeeting?.meeting_participants_count|"",
                         created_at: dbMeeting.created_at,
                         updated_at: dbMeeting.updated_at
                     };
@@ -199,6 +259,12 @@ export const createMeeting = async (req, res) => {
         console.log('Creating new meeting with data:', req.body);
         const tenantId = req.user.tenant_id;
         const zoomapikey = await MeetingCredential.findOne({ tenantId:tenantId });
+        if (!zoomapikey) {
+            return res.status(403).json({
+                success: false,
+                message: 'No permission for meeting creation, contact admin for more details'
+            });
+        }
         const token = await getZoomToken(zoomapikey.zoomApiKey,zoomapikey.zoomApiSecret,zoomapikey.zoomApiId);
         const { topic, start_time, duration, settings, agenda } = req.body;
 
@@ -310,7 +376,7 @@ export const updateMeeting = async (req, res) => {
         console.log('Updating meeting:', req.params.meetingId, req.body);
         const tenantId = req.user.tenant_id;
         const zoomapikey = await MeetingCredential.findOne({ tenantId:tenantId });
-        const token = await getZoomToken(zoomapikey.zoomApiKey,zoomapikey.zoomApiSecret);
+        const token = await getZoomToken(zoomapikey.zoomApiKey,zoomapikey.zoomApiSecret,zoomapikey.zoomApiId);
         const { meetingId } = req.params;
         const { topic, agenda, start_time, duration, settings, status } = req.body;
 
@@ -391,6 +457,34 @@ export const updateMeeting = async (req, res) => {
             error: 'Failed to update meeting',
             details: error.response?.data || error.message
         });
+    }
+};
+
+export const cancelMeeting = async (req, res) => {
+    try {
+        const tenantId = req.user.tenant_id;
+        const { meetingId } = req.params;
+        // Find the meeting in the database
+        const meeting = await LiveSession.findOne({ zoom_meeting_id: meetingId });
+        if (!meeting) {
+            return res.status(404).json({ error: 'Meeting not found' });
+        }
+        // Optionally: Cancel on Zoom (not required for status update, but can be added)
+        // const zoomapikey = await MeetingCredential.findOne({ tenantId: tenantId });
+        // const token = await getZoomToken(zoomapikey.zoomApiKey, zoomapikey.zoomApiSecret, zoomapikey.zoomApiId);
+        // await axios.delete(`https://api.zoom.us/v2/meetings/${meetingId}`, {
+        //     headers: {
+        //         'Authorization': `Bearer ${token}`,
+        //         'Content-Type': 'application/json'
+        //     }
+        // });
+        // Update status in DB
+        meeting.status = 'cancelled';
+        meeting.updated_at = new Date();
+        await meeting.save();
+        res.json({ message: 'Meeting cancelled successfully', meeting });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to cancel meeting', details: error.message });
     }
 };
 

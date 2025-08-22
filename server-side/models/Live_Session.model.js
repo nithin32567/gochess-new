@@ -51,7 +51,14 @@ const liveSessionSchema = new mongoose.Schema({
         enum: ['ongoing', 'completed', 'scheduled', 'cancelled'],
         default: 'scheduled',
         required: true
+    },
+    meeting_duration_completed:{
+        type:String
+    },
+    meeting_participants_count:{
+        type:Number
     }
+
 }, {
     timestamps: {
         createdAt: 'created_at',

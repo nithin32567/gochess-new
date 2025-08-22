@@ -4,7 +4,6 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-console.log("multer function called");
 
 // Accept all images and common document types
 const imageMimeTypes = [
@@ -35,10 +34,22 @@ const documentMimeTypes = [
 // Accept all images and documents
 const allowedMimeTypes = [...imageMimeTypes, ...documentMimeTypes];
 
-// Configure storage
-const storage = multer.diskStorage({
+// Configure storage for lessons
+const lessonStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, "../../uploads/lessons"));
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+  },
+});
+
+// Configure storage for course images
+const courseImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, "../../uploads/courses"));
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
@@ -61,9 +72,23 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer
+// Image file filter function (only images)
+const imageFileFilter = (req, file, cb) => {
+  if (imageMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(
+      new Error(
+        "Invalid file type. Only image files are allowed."
+      ),
+      false
+    );
+  }
+};
+
+// Configure multer for lessons
 const upload = multer({
-  storage: storage,
+  storage: lessonStorage,
   fileFilter: fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB per file
@@ -71,4 +96,14 @@ const upload = multer({
   },
 });
 
-export default upload;
+// Configure multer for course images
+const uploadCourseImage = multer({
+  storage: courseImageStorage,
+  fileFilter: imageFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB per file
+    files: 1, // max 1 file per request for course images
+  },
+});
+
+export { upload, uploadCourseImage };

@@ -3,22 +3,34 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import sessionSchema from "../../models/UserSession.js";
 export const loginUser = async (req, res) => {
+  
   console.log("loginUser");
   try {
     console.log(req.body);
 
     const { email, password } = req.body;
     const user = await Login.findOne({ email }).populate("role_id");
-
+    console.log("************************************************************");
+    console.log(user);
+    console.log("************************************************************");
+    
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(401).json({ message: "Email not found" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Invalid Password" });
+    }
+    if(!user.is_active){
+      return res.status(401).json({ message: "Accout not Activated" });
+
     }
     await sessionSchema.deleteMany({ userId: user._id });
+console.log("********************************************");
+console.log(user._id);
+
+console.log("********************************************");
 
     const token = jwt.sign(
       {
@@ -37,7 +49,23 @@ export const loginUser = async (req, res) => {
       deviceInfo,
     });
 
-    res.cookie("token", token, {
+    // Set cookie key based on role
+    let cookieKey = "token";
+    // switch (user.role_id.name) {
+    //   case "tenant":
+    //     cookieKey = "tenantToken";
+    //     break;
+    //   case "instructor":
+    //     cookieKey = "instructorToken";
+    //     break;
+    //   case "student":
+    //     cookieKey = "studentToken";
+    //     break;
+    //   default:
+    //     cookieKey = "token";
+    // }
+
+    res.cookie(cookieKey, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",

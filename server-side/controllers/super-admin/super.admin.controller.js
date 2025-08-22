@@ -7,6 +7,7 @@ import MeetingCredential from "../../models/meeting.credential.model.js";
 
 // ! this is used to get all the tenants
 export const getTenants = async (req, res) => {
+  console.log('tenant')
   const tenants = await Tenant.find({});
   res.status(200).json({
     success: true,
@@ -56,13 +57,14 @@ export const getTenantsWithCourseCountandUserCount = async (req, res) => {
 
     const detailedTenants = await Promise.all(
       tenants.map(async (tenant) => {
-        const [user, login, zoomapikey, courseCount, userCount] = await Promise.all([
-          User.findOne({ tenant_id: tenant._id }),
-          Login.findOne({ tenant_id: tenant._id }),
-          MeetingCredential.findOne({ tenantId: tenant._id }),
-          Course.countDocuments({ tenant_id: tenant._id }),
-          Login.countDocuments({ tenant_id: tenant._id }),
-        ]);
+        const [user, login, zoomapikey, courseCount, userCount] =
+          await Promise.all([
+            User.findOne({ tenant_id: tenant._id }),
+            Login.findOne({ tenant_id: tenant._id }),
+            MeetingCredential.findOne({ tenantId: tenant._id }),
+            Course.countDocuments({ tenant_id: tenant._id }),
+            Login.countDocuments({ tenant_id: tenant._id }),
+          ]);
 
         return {
           tenant: tenant.toObject(),
@@ -74,8 +76,7 @@ export const getTenantsWithCourseCountandUserCount = async (req, res) => {
         };
       })
     );
-    console.log(detailedTenants);
-    
+    // console.log(detailedTenants);
 
     res.status(200).json({
       success: true,
@@ -91,7 +92,6 @@ export const getTenantsWithCourseCountandUserCount = async (req, res) => {
   }
 };
 
-
 // ! this is used to get the courses by tenant and enrollerd students count
 export const getCoursesByTenant = async (req, res) => {
   console.log(
@@ -101,7 +101,7 @@ export const getCoursesByTenant = async (req, res) => {
   try {
     const { tenantId } = req.params;
     const courses = await Course.find({ tenant_id: tenantId });
-    console.log("courses", courses);
+    // console.log("courses", courses);
     res.status(200).json({
       success: true,
       data: courses,
@@ -111,6 +111,78 @@ export const getCoursesByTenant = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to retrieve courses",
+    });
+  }
+};
+
+export const disableTenant = async (req, res) => {
+  console.log(
+    "disableTenant ================================================="
+  );
+  try {
+    const { tenantId } = req.params;
+
+    const LoginUser = await Login.findOneAndUpdate(
+      { tenant_id: tenantId },
+      {
+        is_active: false,
+      }
+    );
+    console.log("LoginUser", LoginUser);
+
+    const tenant = await Tenant.findOneAndUpdate(
+      { _id: tenantId },
+      {
+        is_active: false,
+      }
+    );
+    console.log("tenant", tenant);
+    console.log(
+      "---------------------------------------------------------------------------------------------------------"
+    );
+    res.status(200).json({
+      success: true,
+      message: "Tenant disabled successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to disable tenant",
+    });
+  }
+};
+
+export const enableTenant = async (req, res) => {
+  console.log("enableTenant =================================================");
+  try {
+    const { tenantId } = req.params;
+    const LoginUser = await Login.findOneAndUpdate(
+      { tenant_id: tenantId },
+      {
+        is_active: true,
+      }
+    );
+    console.log("LoginUser", LoginUser);
+    const tenant = await Tenant.findOneAndUpdate(
+      { _id: tenantId },
+      {
+        is_active: true,
+      }
+    );
+    console.log("tenant", tenant);
+    console.log(
+      "---------------------------------------------------------------------------------------------------------"
+    );
+    res.status(200).json({
+      success: true,
+      message: "Tenant enabled successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to enable tenant",
     });
   }
 };

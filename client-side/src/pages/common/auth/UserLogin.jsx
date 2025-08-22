@@ -4,145 +4,142 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
 function UserLogin() {
- // login the user and get the current user details store in the user slice
+  // login the user and get the current user details store in the user slice
 
- const [signinData, setSigninData] = useState({
-  email: "",
-  password: "",
- });
- const API_URL = import.meta.env.VITE_API_URL;
- const [error, setError] = useState("");
- const [loading, setLoading] = useState(false);
- const navigate = useNavigate();
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  console.log(signinData);
-  try {
-   setLoading(true);
-   //  const response = await axios.post(`${API_URL}/users/login`, signinData, {
-   //   withCredentials: true,
-   //  });
-   //  console.log("response", response);
+  const [signinData, setSigninData] = useState({
+    email: "",
+    password: "",
+  });
+  const API_URL = import.meta.env.VITE_API_URL;
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log(signinData);
+    try {
+      setLoading(true);
+      const response = await axios.post(`${API_URL}/users/login`, signinData, {
+        withCredentials: true,
+      });
+      setLoading(false);
+      const { user } = response.data || {};
+      console.log(user)
+      localStorage.setItem("user-email", signinData.email);
+      if (user.role.toLowerCase() === "student") {
+        navigate("/student");
+      } else if (user.role.toLowerCase() === "instructor") {
+        navigate("/instructor");
+      } else if (user.role.toLowerCase() === "tenantadmin" || user.role.toLowerCase() === "tenant") {
+        navigate("/tenant");
+      }
 
-   setLoading(false);
-   localStorage.setItem("user-email", signinData.email);
-   //  if (response.data) {
-   if (signinData.email === "tenant@gmail.com") {
-    navigate("/tenant");
-   } else if (signinData.email === "instructor@gmail.com" && signinData.password === "instructor@1234#") {
-    navigate("/instructor");
-   } else if (signinData.email === "student@gmail.com" && signinData.password === "student@1234#") {
-    navigate("/student");
-   } else {
-    toast.error("Invalid email or password");
-   }
-   //  }
-  } catch (error) {
-   setLoading(false);
-   console.log("error", error);
-   setError(error.response?.data?.message ?? "Login failed");
-  }
- };
+    } catch (error) {
+      setLoading(false);
+      console.log("error", error);
+      setError(error.response?.data?.message ?? "Login failed");
+    }
+  };
 
- const handleChange = (e) => {
-  setSigninData({ ...signinData, [e.target.name]: e.target.value });
- };
+  const handleChange = (e) => {
+    setSigninData({ ...signinData, [e.target.name]: e.target.value });
+  };
 
- useEffect(() => {
-  document.body.style.paddingLeft = 0;
- }, []);
+  useEffect(() => {
+    document.body.style.paddingLeft = 0;
+  }, []);
 
- return (
-  <>
-   <div className="container-fluid">
-    <div className="row">
-     <div className="col-lg-6">
-      <div className="login-left-con">
-       <div className="login-left-middlealign">
-        <div className="row justify-content-center">
-         <div className="col-xl-6 col-lg-9 col-md-8">
-          <div className="login-container-wrap">
-           <div className="login-logo">
-            <img src="/img/gochess-logo.png" alt="Go Chess" />
-           </div>
-           <div className="welcometext">
-            <h4>Welcome Back!</h4>
-            <p>Log in to access your account &amp; explore more.</p>
-           </div>
-           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-             {error}
-            </div>
-           )}
-           <form onSubmit={handleSubmit}>
-            <div className="inputitem">
-             <i className="fa-solid fa-user" />
-             <input
-              type="text"
-              name="email"
-              onChange={handleChange}
-              placeholder="Username / Email"
-             />
-            </div>
-            <div className="inputitem">
-             <i className="fa-solid fa-lock" />
-             <input
-              type="password"
-              name="password"
-              onChange={handleChange}
-              placeholder="Password"
-             />
-            </div>
-            <button
-             disabled={loading}
-             className="login-btn">
-             {loading ? "Signing in..." : "Sign in"}
-             <i className="fa-solid fa-arrow-right" />
-            </button>
-            <a href="#" className="forgot-pass">
-             Forgot Password?
-            </a>
-            {/* <hr />
+  return (
+    <>
+      <div className="container-fluid">
+        <div className="row">
+          <div className="col-lg-6">
+            <div className="login-left-con">
+              <div className="login-left-middlealign">
+                <div className="row justify-content-center">
+                  <div className="col-xl-6 col-lg-9 col-md-8">
+                    <div className="login-container-wrap">
+                      <div className="login-logo">
+                        <img src="/img/gochess-logo.png" alt="Go Chess" />
+                      </div>
+                      <div className="welcometext">
+                        <h4>Welcome Back!</h4>
+                        <p>Log in to access your account &amp; explore more.</p>
+                      </div>
+                      {error && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                          {error}
+                        </div>
+                      )}
+                      <form onSubmit={handleSubmit}>
+                        <div className="inputitem">
+                          <i className="fa-solid fa-user" />
+                          <input
+                            type="text"
+                            name="email"
+                            onChange={handleChange}
+                            placeholder="Username / Email"
+                          />
+                        </div>
+                        <div className="inputitem">
+                          <i className="fa-solid fa-lock" />
+                          <input
+                            type="password"
+                            name="password"
+                            onChange={handleChange}
+                            placeholder="Password"
+                          />
+                        </div>
+                        <button
+                          disabled={loading}
+                          className="login-btn">
+                          {loading ? "Signing in..." : "Sign in"}
+                          <i className="fa-solid fa-arrow-right" />
+                        </button>
+                        <a href="#" className="forgot-pass">
+                          Forgot Password?
+                        </a>
+                        {/* <hr />
             <button
              disabled={loading}
              className="google-btn">
              <img src="img/google.png" alt="Google" />
              Continue with Google
             </button> */}
-           </form>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-         </div>
-        </div>
-       </div>
-      </div>
-     </div>
-     <div className="col-lg-6">
-      <div className="login-right-con">
-       <div>
-        <span>
-         <svg
-          version="1.1"
-          xmlns="http://www.w3.org/2000/svg"
-          xmlnsXlink="http://www.w3.org/1999/xlink"
-          x="0px"
-          y="0px"
-          viewBox="0 0 2640.7 1662"
-          style={{ enableBackground: "new 0 0 2640.7 1662" }}
-          xmlSpace="preserve"
-         >
-          <style
-           type="text/css"
-           dangerouslySetInnerHTML={{
-            __html:
-             "\n         .st0 {\n          fill: #4C5096;\n         }\n\n         .st1 {\n          fill: #898CBA;\n         }\n\n         .st2 {\n          fill: #6A6EA8;\n         }\n\n         .st3 {\n          fill: #FFFFFF;\n         }\n\n         .st4 {\n          fill: url(#SVGID_1_);\n         }\n\n         .st5 {\n          fill: url(#SVGID_00000065781671183557813540000001240956633401581964_);\n         }\n\n         .st6 {\n          fill: url(#SVGID_00000093149866314237875110000005859598420132522409_);\n         }\n\n         .st7 {\n          fill: url(#SVGID_00000166669252271789139300000009859919807507595395_);\n         }\n\n         .st8 {\n          fill: url(#SVGID_00000167379713771336291030000017050714956712727939_);\n         }\n\n         .st9 {\n          fill: url(#SVGID_00000109005845510332530480000001753773457119822985_);\n         }\n\n         .st10 {\n          fill: url(#SVGID_00000114762259417893387220000007103015846633460903_);\n         }\n\n         .st11 {\n          fill: url(#SVGID_00000168824732648935138520000014813523939525341858_);\n         }\n\n         .st12 {\n          fill: url(#SVGID_00000016754390569920132810000007910830420926639241_);\n         }\n\n         .st13 {\n          fill: url(#SVGID_00000130616465742927940770000010868951257973492911_);\n         }\n\n         .st14 {\n          fill: url(#SVGID_00000181057210791690891820000008306502762905546649_);\n         }\n\n         .st15 {\n          fill: url(#SVGID_00000027601050742399018620000003329181226869503908_);\n         }\n\n         .st16 {\n          fill: url(#SVGID_00000047046447255006354450000015362830834049108126_);\n         }\n\n         .st17 {\n          fill: url(#SVGID_00000160181984244639355350000006849731399617072781_);\n         }\n\n         .st18 {\n          fill: url(#SVGID_00000110461072543790490730000001376691075123253145_);\n         }\n\n         .st19 {\n          fill: url(#SVGID_00000060016391771975021320000003327877525391189657_);\n         }\n\n         .st20 {\n          fill: url(#SVGID_00000119102486081552691510000002511534354815293326_);\n         }\n\n         .st21 {\n          fill: url(#SVGID_00000172436198931803620250000000141432758212586172_);\n         }\n\n         .st22 {\n          fill: url(#SVGID_00000133502883896965696080000006478994816388792496_);\n         }\n        "
-           }}
-          />
-          <g id="Background"></g>
-          <g id="Object">
-           <g>
-            <path
-             className="st0"
-             d="M951.5,807.7c-1.6-0.5-3.3-0.8-5-1c-2-0.2-4-0.6-5.9-1.3c-1.5-0.5-4.5-1.4-4.6-3.4c-0.3-3.3,5.7-3.5,8.9-5.1
+          <div className="col-lg-6">
+            <div className="login-right-con">
+              <div>
+                <span>
+                  <svg
+                    version="1.1"
+                    xmlns="http://www.w3.org/2000/svg"
+                    xmlnsXlink="http://www.w3.org/1999/xlink"
+                    x="0px"
+                    y="0px"
+                    viewBox="0 0 2640.7 1662"
+                    style={{ enableBackground: "new 0 0 2640.7 1662" }}
+                    xmlSpace="preserve"
+                  >
+                    <style
+                      type="text/css"
+                      dangerouslySetInnerHTML={{
+                        __html:
+                          "\n         .st0 {\n          fill: #4C5096;\n         }\n\n         .st1 {\n          fill: #898CBA;\n         }\n\n         .st2 {\n          fill: #6A6EA8;\n         }\n\n         .st3 {\n          fill: #FFFFFF;\n         }\n\n         .st4 {\n          fill: url(#SVGID_1_);\n         }\n\n         .st5 {\n          fill: url(#SVGID_00000065781671183557813540000001240956633401581964_);\n         }\n\n         .st6 {\n          fill: url(#SVGID_00000093149866314237875110000005859598420132522409_);\n         }\n\n         .st7 {\n          fill: url(#SVGID_00000166669252271789139300000009859919807507595395_);\n         }\n\n         .st8 {\n          fill: url(#SVGID_00000167379713771336291030000017050714956712727939_);\n         }\n\n         .st9 {\n          fill: url(#SVGID_00000109005845510332530480000001753773457119822985_);\n         }\n\n         .st10 {\n          fill: url(#SVGID_00000114762259417893387220000007103015846633460903_);\n         }\n\n         .st11 {\n          fill: url(#SVGID_00000168824732648935138520000014813523939525341858_);\n         }\n\n         .st12 {\n          fill: url(#SVGID_00000016754390569920132810000007910830420926639241_);\n         }\n\n         .st13 {\n          fill: url(#SVGID_00000130616465742927940770000010868951257973492911_);\n         }\n\n         .st14 {\n          fill: url(#SVGID_00000181057210791690891820000008306502762905546649_);\n         }\n\n         .st15 {\n          fill: url(#SVGID_00000027601050742399018620000003329181226869503908_);\n         }\n\n         .st16 {\n          fill: url(#SVGID_00000047046447255006354450000015362830834049108126_);\n         }\n\n         .st17 {\n          fill: url(#SVGID_00000160181984244639355350000006849731399617072781_);\n         }\n\n         .st18 {\n          fill: url(#SVGID_00000110461072543790490730000001376691075123253145_);\n         }\n\n         .st19 {\n          fill: url(#SVGID_00000060016391771975021320000003327877525391189657_);\n         }\n\n         .st20 {\n          fill: url(#SVGID_00000119102486081552691510000002511534354815293326_);\n         }\n\n         .st21 {\n          fill: url(#SVGID_00000172436198931803620250000000141432758212586172_);\n         }\n\n         .st22 {\n          fill: url(#SVGID_00000133502883896965696080000006478994816388792496_);\n         }\n        "
+                      }}
+                    />
+                    <g id="Background"></g>
+                    <g id="Object">
+                      <g>
+                        <path
+                          className="st0"
+                          d="M951.5,807.7c-1.6-0.5-3.3-0.8-5-1c-2-0.2-4-0.6-5.9-1.3c-1.5-0.5-4.5-1.4-4.6-3.4c-0.3-3.3,5.7-3.5,8.9-5.1
                                   c11.2-5.3,19.6-12.8,20.1-25.4c0.5-12.5-8.4-19.3-18.8-24.6c-7.5-3.8-15.2-7.1-22.7-10.9c-12.2-6.4-22.3-15-28.2-27.3
                                   c-5.5-11.4-4.7-21.8,6-30.3c3.7-2.9,7.6-6.7,5.8-11.7c-2.3-6.4-8.3-4.7-13.7-4.4c-6.3,0.3-13,0.5-19-1.7
                                   c-6.7-2.5-10.2-9.3-12.9-15.4c-21.3-48.2-25.4-66-25.8-117.3c-0.1-9.1,8.2-10,15.3-10.9c11.6-1.5,23.3-3,35-4.2
@@ -157,10 +154,10 @@ function UserLogin() {
                                   c3.2,1.6,9.2,1.8,8.9,5.1c-0.1,1.9-3.1,2.9-4.6,3.4c-1.9,0.6-3.9,1-5.9,1.3c-4.9,0.6-9.5,2.1-13.5,5.1c-3.6,2.7-6.4,6.4-8.1,10.6
                                   c-1.2,3-1.8,6.2-1.8,9.4v10.3c0,5.4,4.4,9.7,9.7,9.7H792h168.2c5.4,0,9.7-4.4,9.7-9.7c0,0,0-10.3,0-10.3c0-6-2.2-11.9-6.1-16.4
                                   C960.6,811.7,956.2,809.1,951.5,807.7z"
-            />
-            <path
-             className="st0"
-             d="M2025,807.7c-1.6-0.5-3.3-0.8-5-1c-2-0.2-4-0.6-5.9-1.3c-1.5-0.5-4.5-1.4-4.6-3.4c-0.3-3.3,5.7-3.5,8.9-5.1
+                        />
+                        <path
+                          className="st0"
+                          d="M2025,807.7c-1.6-0.5-3.3-0.8-5-1c-2-0.2-4-0.6-5.9-1.3c-1.5-0.5-4.5-1.4-4.6-3.4c-0.3-3.3,5.7-3.5,8.9-5.1
                                   c11.2-5.3,19.6-12.8,20.1-25.4c0.5-12.5-8.4-19.3-18.8-24.6c-7.5-3.8-15.2-7.1-22.7-10.9c-12.2-6.4-22.3-15-28.2-27.3
                                   c-5.5-11.4-4.7-21.8,6-30.3c3.7-2.9,7.6-6.7,5.8-11.7c-2.3-6.4-8.3-4.7-13.7-4.4c-6.3,0.3-13,0.5-19-1.7
                                   c-6.7-2.5-10.2-9.3-12.9-15.4c-21.3-48.2-25.4-66-25.8-117.3c-0.1-9.1,8.2-10,15.3-10.9c11.6-1.5,23.3-3,35-4.2
@@ -175,37 +172,37 @@ function UserLogin() {
                                   c3.2,1.6,9.2,1.8,8.9,5.1c-0.1,1.9-3.1,2.9-4.6,3.4c-1.9,0.6-3.9,1-5.9,1.3c-4.9,0.6-9.5,2.1-13.5,5.1c-3.6,2.7-6.4,6.4-8.1,10.6
                                   c-1.2,3-1.8,6.2-1.8,9.4v10.3c0,5.4,4.4,9.7,9.7,9.7h168.2h168.2c5.4,0,9.7-4.4,9.7-9.7c0,0,0-10.3,0-10.3c0-6-2.2-11.9-6.1-16.4
                                   C2034.1,811.7,2029.7,809.1,2025,807.7z"
-            />
-            <g>
-             <polygon
-              id="floor1"
-              className="st1"
-              points="530.9,1019.1 0,1019.1 316.9,885.9 720.3,885.9 			"
-             />
-             <polygon
-              id="floor2"
-              className="st1"
-              points="2640.7,1019.1 2109.8,1019.1 1920.4,885.9 2323.8,885.9 			"
-             />
-             <polygon
-              id="floor3"
-              className="st1"
-              points="942.4,1275.2 166.5,1275.2 530.9,1019.1 1061.8,1019.1 			"
-             />
-             <polygon
-              id="floor4"
-              className="st1"
-              points="2494.2,1275.2 1718.3,1275.2 1592.6,1019.1 2123.5,1019.1 			"
-             />
-             <polygon
-              id="floor5"
-              className="st2"
-              points="1906.6,1658.8 762.1,1662 942.4,1275.2 1718.3,1275.2 			"
-             />
-            </g>
-            <path
-             className="st3"
-             d="M859.2,1005.5c-21.2,0-38.5-16.7-38.5-37.3v-20.7c0-15.3,6.6-29.1,17.3-39.1c-6.9-11.1-8.3-22.3-7.6-31.3
+                        />
+                        <g>
+                          <polygon
+                            id="floor1"
+                            className="st1"
+                            points="530.9,1019.1 0,1019.1 316.9,885.9 720.3,885.9 			"
+                          />
+                          <polygon
+                            id="floor2"
+                            className="st1"
+                            points="2640.7,1019.1 2109.8,1019.1 1920.4,885.9 2323.8,885.9 			"
+                          />
+                          <polygon
+                            id="floor3"
+                            className="st1"
+                            points="942.4,1275.2 166.5,1275.2 530.9,1019.1 1061.8,1019.1 			"
+                          />
+                          <polygon
+                            id="floor4"
+                            className="st1"
+                            points="2494.2,1275.2 1718.3,1275.2 1592.6,1019.1 2123.5,1019.1 			"
+                          />
+                          <polygon
+                            id="floor5"
+                            className="st2"
+                            points="1906.6,1658.8 762.1,1662 942.4,1275.2 1718.3,1275.2 			"
+                          />
+                        </g>
+                        <path
+                          className="st3"
+                          d="M859.2,1005.5c-21.2,0-38.5-16.7-38.5-37.3v-20.7c0-15.3,6.6-29.1,17.3-39.1c-6.9-11.1-8.3-22.3-7.6-31.3
                                   c2.4-32.6,31.9-44,44.4-48.9c4.2-1.6,8.4-3.1,12.7-4.7c9.6-3.5,18.8-6.8,26.5-10.9c9.8-5.3,12.5-9.7,12.7-10.9
                                   c0.2-1.1-0.8-5.5-7.5-12.7c-10.8-11.7-12-22.9-11.1-30.2c1.2-9.4,6.4-17.5,14.6-22.8c9.9-6.3,20.7-7.7,28-8.2
                                   c1.4-0.1,2.8-0.1,4.2-0.1c0.9,0,1.8,0,2.7,0c18.8-69.1,23.9-145,15-225.9l-0.6-5.6c-1.5-15.1-4.1-40.3-13.5-48.7
@@ -218,10 +215,10 @@ function UserLogin() {
                                   c0.9,7.3-0.3,18.4-11.1,30.2c-6.7,7.2-7.6,11.6-7.5,12.7c0.2,1.2,2.9,5.6,12.7,10.9c7.7,4.2,16.8,7.5,26.5,10.9
                                   c4.2,1.5,8.5,3.1,12.7,4.7c12.5,4.8,42,16.2,44.4,48.9c0.7,9-0.7,20.2-7.6,31.3c10.6,10,17.2,23.8,17.2,39.1v20.7
                                   c0,20.6-17.3,37.3-38.5,37.3H859.2z"
-            />
-            <path
-             className="st0"
-             d="M1276.6,947.6v20.7c0,6.1-5.5,11.1-12.3,11.1H859.2c-6.8,0-12.3-5-12.3-11.1v-20.7
+                        />
+                        <path
+                          className="st0"
+                          d="M1276.6,947.6v20.7c0,6.1-5.5,11.1-12.3,11.1H859.2c-6.8,0-12.3-5-12.3-11.1v-20.7
                                   c0-15.9,14.2-28.8,31.8-28.8h9.1c0.2-0.5,0.4-1,0.5-1.5c0.8-4.7-5.6-4.5-8.9-6.3c-13.5-7.3-24.1-16.8-23-31.9
                                   c1.1-14.9,14.2-21.2,27.8-26.4c14.1-5.5,29-9.9,42.1-17c30.8-16.6,34.6-39.9,12-64.4c-3.5-3.7-7.1-9.6-1.5-13.2
                                   c4.4-2.8,10.2-3.7,15.5-4.1c5.1-0.3,10.3,0.6,15.2-0.2c9.2-1.4,12.5-9.2,14.5-16.5c21.7-78.1,25.3-158.3,16.5-238.3
@@ -239,10 +236,10 @@ function UserLogin() {
                                   c5.3,0.4,11.1,1.2,15.5,4.1c5.6,3.6,1.9,9.5-1.5,13.2c-22.6,24.4-18.7,47.8,12,64.4c13.1,7.1,28,11.5,42.1,17
                                   c13.5,5.2,26.7,11.5,27.8,26.4c1.1,15.1-9.4,24.6-23,31.9c-3.2,1.7-9.7,1.6-8.9,6.3c0.1,0.6,0.3,1.1,0.5,1.5h9.1
                                   C1262.4,918.8,1276.6,931.7,1276.6,947.6z"
-            />
-            <path
-             className="st3"
-             d="M1431.9,1004.1c-19.6,0-35.6-16-35.6-35.6v-17.5c0-13.1,5-25,13.2-34c-3.4-7.3-5.2-16-3.8-26.5
+                        />
+                        <path
+                          className="st3"
+                          d="M1431.9,1004.1c-19.6,0-35.6-16-35.6-35.6v-17.5c0-13.1,5-25,13.2-34c-3.4-7.3-5.2-16-3.8-26.5
                                   c4-30.2,30.6-38.8,42-42.5c2.8-0.9,5.6-1.8,8.4-2.6c8.4-2.6,16.4-5.1,23.2-8.3c3.5-1.7,5.7-3.2,6.9-4.3c-0.9-1.3-2.6-3.3-5.6-5.7
                                   c-16.4-13.4-15.3-28.5-13.2-36.3c0.1-0.4,0.2-0.8,0.4-1.2c-2.1,0.8-4.8,1.7-8,2.4c-2.4,0.5-4.8,0.7-7.1,0.7
                                   c-29.3,0-37.1-30.8-40-42.3c-0.4-1.4-0.6-2.6-0.9-3.6c-0.7-1.9-1.1-3.6-1.3-4.6c-2-6.4-2.2-13.2-0.7-20c-3.8-4.3-6.6-9.8-8.1-15.9
@@ -260,10 +257,10 @@ function UserLogin() {
                                   c7.4,18.5,15.7,45.7,2.2,68.2c-10.6,17.7-29.7,24.9-48,28.3c0.5,12.5-5.8,23.4-18.9,32.4c3.1,3.9,7.9,6.7,15.3,9.2
                                   c4.5,1.5,9.2,2.7,14.3,4.1c4.2,1.1,8.4,2.3,12.6,3.5c25.8,7.8,39.5,22.8,40.7,44.6c0.5,8.7-1,17.1-4.5,24.7
                                   c8.2,9,13.3,21,13.3,34.1v17.5c0,19.6-16,35.6-35.6,35.6H1431.9z"
-            />
-            <path
-             className="st0"
-             d="M1413,549.6c2.8-1,6,1.3,8.4,2.4c2.8,1.3,6,1.8,9.1,1.5c0.6-0.1,1.3-0.2,1.7-0.6c0.5-0.4,0.6-1.2,0.1-1.6
+                        />
+                        <path
+                          className="st0"
+                          d="M1413,549.6c2.8-1,6,1.3,8.4,2.4c2.8,1.3,6,1.8,9.1,1.5c0.6-0.1,1.3-0.2,1.7-0.6c0.5-0.4,0.6-1.2,0.1-1.6
                                   c-0.2-0.2-0.5-0.2-0.7-0.3c-3.4-0.9-6.6-2.4-9.5-4.3c-2.5-1.7-6.7-4.3-7.2-7.4c-2.3-14.8,0.6-29.5,1.8-44.2
                                   c0.6-7.4,3.2-7.1,8.1-3.3c2.4,1.8,5.2,2.6,8,3.4c0.8,0.2,3.6,1.1,4.3,0.1c0.6-0.9-0.9-2.1-1.4-2.7c-3-2.8-6.8-3.9-8.7-7.8
                                   c-1.7-3.6-2.6-7.6-2.3-11.6c0.4-4.9,3.1-9.4,4-14.3c1.1-5.5,1.5-11,2.9-16.4c1-3.9,2.7-7.6,5.3-10.7c1.3-1.5,3-3.1,4.7-4.1
@@ -291,11 +288,11 @@ function UserLogin() {
                                   c-7-0.8-15.1-2.3-20.4-7.5c-3.7-3.7-4.5-8.3-5.1-13.2c-0.7-5.7-1.2-11.5-2-17.2c-0.6-3.9-2.6-10.3,1.8-12.9
                                   c2.4-1.4,6.1-1.2,8.8-1.2c5.4-0.1,11.1,0.4,16.4-1.1c0.5-0.1,1-0.3,1.4-0.7c0.4-0.4,0.6-0.9,0.4-1.4c-0.3-0.7-1.2-0.8-2-0.8
                                   c-9.8,0.1-27.1-0.5-27.7-13.6c-0.5-11.8-1.4-23.6-1.9-35.4C1410.2,555,1409.3,550.9,1413,549.6z"
-            />
-            <g>
-             <path
-              className="st3"
-              d="M1067.9,1258.2c-21.1,0-38.3-17.2-38.3-38.3V1191c0-18.6,8.9-35.2,22.6-45.7c-9-14.2-12.5-29.8-9.9-44.6
+                        />
+                        <g>
+                          <path
+                            className="st3"
+                            d="M1067.9,1258.2c-21.1,0-38.3-17.2-38.3-38.3V1191c0-18.6,8.9-35.2,22.6-45.7c-9-14.2-12.5-29.8-9.9-44.6
                                       c2.9-16.6,13.3-31.4,29.4-41.6c8.6-5.5,17.3-9.4,25.6-13.1c2.9-1.3,5.8-2.6,8.6-3.9c15.3-7.3,24.6-15,30-25
                                       c2.4-4.4,3-6.7,3.2-7.5c-0.4-0.7-1.5-2.6-4.7-6.1c-13.1-13.9-16.9-28.7-11.4-43.9c5.5-15.1,19.2-24.5,35.8-24.5
                                       c1.6,0,3.3,0.1,5,0.3c0.3-0.5,1.4-2.4,1.4-2.4c71.2-125.1,72.4-263.3,64.5-371.3c-21.1-0.8-42-3.9-62.2-9.1
@@ -316,10 +313,10 @@ function UserLogin() {
                                       c2.2-0.2,4.6-0.4,6.9-0.4c17.1,0,30.2,9.2,35.2,24.7c4.8,14.7,0.8,28.7-11.8,41.7c-7.8,8-8.3,9.1-1.7,19.6
                                       c4.7,7.5,11.9,13.3,24.2,19.6c3.8,1.9,7.6,3.8,11.3,5.6c6.7,3.3,13.7,6.7,20.7,10.5c21,11.4,33.7,28.6,36,48.4
                                       c1.6,13.8-2.1,27.5-10.4,40.1c13.9,10.5,23,27.2,23,46v28.9c0,21.1-17.2,38.3-38.3,38.3H1067.9z"
-             />
-             <path
-              className="st0"
-              d="M1553.5,1159.6h-14.4c-0.4-0.5-0.6-1-0.7-1.6c-0.9-8.7,11.5-10.5,17.8-16c24-21.4,21.7-47.2-6.2-62.5
+                          />
+                          <path
+                            className="st0"
+                            d="M1553.5,1159.6h-14.4c-0.4-0.5-0.6-1-0.7-1.6c-0.9-8.7,11.5-10.5,17.8-16c24-21.4,21.7-47.2-6.2-62.5
                                       c-10.3-5.6-20.9-10.5-31.3-15.8c-13.7-7-26.1-15.6-34.5-29c-12.7-20.2-11.6-34.6,5.1-51.7c4.5-4.6,7.7-9.1,5.7-15.4
                                       c-2.4-7.3-9.1-6.8-14.7-6.3c-13.3,1.3-19.6-2.8-27.3-15.9c-42.7-72.4-63.2-150.6-68.8-233.6c-3.6-52.7-3.8-105.2,2.3-157.8
                                       c1.5-12.9,5.4-19.4,20.1-19.7c18.6-0.3,37.2-3.6,55.7-6.6c9.2-1.5,18.7-4.7,21.6-15.4c3.1-11.2-5.2-17.7-12.1-23.5
@@ -348,389 +345,389 @@ function UserLogin() {
                                       c-20.8,13.3-23.8,34.6-8.6,54.2c5.5,7.2,12.8,11.9,20.9,15.5c2.5,1.1,6.2,2,5.9,5.3c-0.1,1.2-2.1,2.7-4,3.5h-12.9
                                       c-17.3,0-31.4,14-31.4,31.4v28.9c0,6.7,5.4,12.1,12.1,12.1h504.9c6.7,0,12.1-5.4,12.1-12.1V1191
                                       C1584.9,1173.7,1570.8,1159.6,1553.5,1159.6z"
-             />
-             <g>
-              <linearGradient
-               id="SVGID_1_"
-               gradientUnits="userSpaceOnUse"
-               x1="1209.5931"
-               y1="207.3454"
-               x2="1253.7787"
-               y2="358.507"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               className="st4"
-               d="M1187.6,230.3c0,0,27.6,3.9,57.8,1.6c0,0,11.3,57.8,9,139.7C1254.5,371.6,1245.2,257.6,1187.6,230.3z"
-              />
-              <linearGradient
-               id="SVGID_00000041980951777084297370000000018691490506178728_"
-               gradientUnits="userSpaceOnUse"
-               x1="1238.2885"
-               y1="944.1747"
-               x2="1275.4979"
-               y2="594.1759"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000041980951777084297370000000018691490506178728_)"
-               }}
-               d="M1270.2,550.6c0,0,27,294.5-64.5,403.1
+                          />
+                          <g>
+                            <linearGradient
+                              id="SVGID_1_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1209.5931"
+                              y1="207.3454"
+                              x2="1253.7787"
+                              y2="358.507"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              className="st4"
+                              d="M1187.6,230.3c0,0,27.6,3.9,57.8,1.6c0,0,11.3,57.8,9,139.7C1254.5,371.6,1245.2,257.6,1187.6,230.3z"
+                            />
+                            <linearGradient
+                              id="SVGID_00000041980951777084297370000000018691490506178728_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1238.2885"
+                              y1="944.1747"
+                              x2="1275.4979"
+                              y2="594.1759"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000041980951777084297370000000018691490506178728_)"
+                              }}
+                              d="M1270.2,550.6c0,0,27,294.5-64.5,403.1
                                           c0,0-11.8,6.5,28.6,6.5c36.6,0,32.4-15.1,35.4-25.9c2.6-9.6,36.3-206.8,9.1-383.7L1270.2,550.6z"
-              />
-              <linearGradient
-               id="SVGID_00000170236674667234227730000015568407594079539083_"
-               gradientUnits="userSpaceOnUse"
-               x1="1088.1871"
-               y1="1106.1144"
-               x2="1147.3389"
-               y2="1106.1144"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000170236674667234227730000015568407594079539083_)"
-               }}
-               d="M1147.3,1067.1
+                            />
+                            <linearGradient
+                              id="SVGID_00000170236674667234227730000015568407594079539083_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1088.1871"
+                              y1="1106.1144"
+                              x2="1147.3389"
+                              y2="1106.1144"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000170236674667234227730000015568407594079539083_)"
+                              }}
+                              d="M1147.3,1067.1
                                           c-18.5,21.5-78.3,23.5-53,59.3c24,33.9,59.9,15.6,41.9-5.4S1147.3,1067.1,1147.3,1067.1z"
-              />
-              <linearGradient
-               id="SVGID_00000065067069669786517880000009989757699838421662_"
-               gradientUnits="userSpaceOnUse"
-               x1="1072.0485"
-               y1="1192.1504"
-               x2="1150.3428"
-               y2="1192.1504"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000065067069669786517880000009989757699838421662_)"
-               }}
-               d="M1072,1209L1072,1209
+                            />
+                            <linearGradient
+                              id="SVGID_00000065067069669786517880000009989757699838421662_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1072.0485"
+                              y1="1192.1504"
+                              x2="1150.3428"
+                              y2="1192.1504"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000065067069669786517880000009989757699838421662_)"
+                              }}
+                              d="M1072,1209L1072,1209
                                           c0-28,9.4-33.7,28-33.7h50.3C1150.3,1175.3,1080.5,1176.2,1072,1209z"
-              />
-              <linearGradient
-               id="SVGID_00000129175436613359878960000013121955249681103784_"
-               gradientUnits="userSpaceOnUse"
-               x1="1161.8738"
-               y1="977.1774"
-               x2="1278.7511"
-               y2="977.1774"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000129175436613359878960000013121955249681103784_)"
-               }}
-               d="M1161.9,971c0,0,42.1,14.5,116.9,12"
-              />
-              <linearGradient
-               id="SVGID_00000044899055665869141630000010098525276641180337_"
-               gradientUnits="userSpaceOnUse"
-               x1="1177.4714"
-               y1="515.4515"
-               x2="1290.3132"
-               y2="515.4515"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000044899055665869141630000010098525276641180337_)"
-               }}
-               d="M1177.5,508.7c0,0,41.4,14,112.8,13.6"
-              />
-              <linearGradient
-               id="SVGID_00000145018309647927195600000000664931754878941100_"
-               gradientUnits="userSpaceOnUse"
-               x1="1224.1027"
-               y1="448.0002"
-               x2="1270.8759"
-               y2="448.0002"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000145018309647927195600000000664931754878941100_)"
-               }}
-               d="M1224.1,445.8c0,0,19.8,4.5,46.8,4.4"
-              />
-              <linearGradient
-               id="SVGID_00000118365789383580628670000011883230211708224170_"
-               gradientUnits="userSpaceOnUse"
-               x1="1237.4747"
-               y1="412.1847"
-               x2="1291.476"
-               y2="412.1847"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000118365789383580628670000011883230211708224170_)"
-               }}
-               d="M1237.5,410.3c0,0,26.5,4.8,54,3.5"
-              />
-              <linearGradient
-               id="SVGID_00000026857857204708519740000004243998861410072762_"
-               gradientUnits="userSpaceOnUse"
-               x1="1244.4316"
-               y1="96.5147"
-               x2="1265.7384"
-               y2="96.5147"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000026857857204708519740000004243998861410072762_)"
-               }}
-               d="M1265.7,85.9c-1.6-0.2-3.3-0.6-4.7-1.5
+                            />
+                            <linearGradient
+                              id="SVGID_00000129175436613359878960000013121955249681103784_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1161.8738"
+                              y1="977.1774"
+                              x2="1278.7511"
+                              y2="977.1774"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000129175436613359878960000013121955249681103784_)"
+                              }}
+                              d="M1161.9,971c0,0,42.1,14.5,116.9,12"
+                            />
+                            <linearGradient
+                              id="SVGID_00000044899055665869141630000010098525276641180337_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1177.4714"
+                              y1="515.4515"
+                              x2="1290.3132"
+                              y2="515.4515"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000044899055665869141630000010098525276641180337_)"
+                              }}
+                              d="M1177.5,508.7c0,0,41.4,14,112.8,13.6"
+                            />
+                            <linearGradient
+                              id="SVGID_00000145018309647927195600000000664931754878941100_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1224.1027"
+                              y1="448.0002"
+                              x2="1270.8759"
+                              y2="448.0002"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000145018309647927195600000000664931754878941100_)"
+                              }}
+                              d="M1224.1,445.8c0,0,19.8,4.5,46.8,4.4"
+                            />
+                            <linearGradient
+                              id="SVGID_00000118365789383580628670000011883230211708224170_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1237.4747"
+                              y1="412.1847"
+                              x2="1291.476"
+                              y2="412.1847"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000118365789383580628670000011883230211708224170_)"
+                              }}
+                              d="M1237.5,410.3c0,0,26.5,4.8,54,3.5"
+                            />
+                            <linearGradient
+                              id="SVGID_00000026857857204708519740000004243998861410072762_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1244.4316"
+                              y1="96.5147"
+                              x2="1265.7384"
+                              y2="96.5147"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000026857857204708519740000004243998861410072762_)"
+                              }}
+                              d="M1265.7,85.9c-1.6-0.2-3.3-0.6-4.7-1.5
                                           c-2.8-2-3-5.6-3.4-8.7c-0.2-1.9-0.5-4.3-2.9-4.3c0,0-4.6,0-4.6,0c-3.2,0-5.7,2.6-5.7,5.7c0,0,0,44.6,0,44.6
                                           c0-2.9,0.4-5.7,0.7-8.5c0.3-3.1,0.4-6.2,1-9.2c0.6-2.8,0.7-5.8,2.1-8.3c0.9-1.7,1.8-3.4,3-4.8c1.4-1.6,3-2.4,5-3.2
                                           C1259.2,86.5,1262.5,86.1,1265.7,85.9z"
-              />
-             </g>
-             <g>
-              <linearGradient
-               id="SVGID_00000076597935694564376370000001036286694383960231_"
-               gradientUnits="userSpaceOnUse"
-               x1="1781.8912"
-               y1="207.3454"
-               x2="1826.0768"
-               y2="358.507"
-               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000076597935694564376370000001036286694383960231_)"
-               }}
-               d="M1453.7,230.3c0,0-27.6,3.9-57.8,1.6
+                            />
+                          </g>
+                          <g>
+                            <linearGradient
+                              id="SVGID_00000076597935694564376370000001036286694383960231_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1781.8912"
+                              y1="207.3454"
+                              x2="1826.0768"
+                              y2="358.507"
+                              gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000076597935694564376370000001036286694383960231_)"
+                              }}
+                              d="M1453.7,230.3c0,0-27.6,3.9-57.8,1.6
                                           c0,0-11.3,57.8-9,139.7C1386.8,371.6,1396.1,257.6,1453.7,230.3z"
-              />
-              <linearGradient
-               id="SVGID_00000161630082801971884510000001141588819199940017_"
-               gradientUnits="userSpaceOnUse"
-               x1="1810.5865"
-               y1="944.1747"
-               x2="1847.796"
-               y2="594.1759"
-               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000161630082801971884510000001141588819199940017_)"
-               }}
-               d="M1371.1,550.6c0,0-27,294.5,64.5,403.1
+                            />
+                            <linearGradient
+                              id="SVGID_00000161630082801971884510000001141588819199940017_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1810.5865"
+                              y1="944.1747"
+                              x2="1847.796"
+                              y2="594.1759"
+                              gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000161630082801971884510000001141588819199940017_)"
+                              }}
+                              d="M1371.1,550.6c0,0-27,294.5,64.5,403.1
                                           c0,0,11.8,6.5-28.6,6.5c-36.6,0-32.4-15.1-35.4-25.9c-2.6-9.6-36.3-206.8-9.1-383.7L1371.1,550.6z"
-              />
-              <linearGradient
-               id="SVGID_00000062169732060962829160000009076110642971728025_"
-               gradientUnits="userSpaceOnUse"
-               x1="1660.4852"
-               y1="1106.1144"
-               x2="1719.6371"
-               y2="1106.1144"
-               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000062169732060962829160000009076110642971728025_)"
-               }}
-               d="M1493.9,1067.1
+                            />
+                            <linearGradient
+                              id="SVGID_00000062169732060962829160000009076110642971728025_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1660.4852"
+                              y1="1106.1144"
+                              x2="1719.6371"
+                              y2="1106.1144"
+                              gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000062169732060962829160000009076110642971728025_)"
+                              }}
+                              d="M1493.9,1067.1
                                           c18.5,21.5,78.3,23.5,53,59.3c-24,33.9-59.9,15.6-41.9-5.4S1493.9,1067.1,1493.9,1067.1z"
-              />
-              <linearGradient
-               id="SVGID_00000152261414955623538290000001931788559531132057_"
-               gradientUnits="userSpaceOnUse"
-               x1="1644.3467"
-               y1="1192.1504"
-               x2="1722.641"
-               y2="1192.1504"
-               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000152261414955623538290000001931788559531132057_)"
-               }}
-               d="M1569.2,1209L1569.2,1209
+                            />
+                            <linearGradient
+                              id="SVGID_00000152261414955623538290000001931788559531132057_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1644.3467"
+                              y1="1192.1504"
+                              x2="1722.641"
+                              y2="1192.1504"
+                              gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000152261414955623538290000001931788559531132057_)"
+                              }}
+                              d="M1569.2,1209L1569.2,1209
                                           c0-28-9.4-33.7-28-33.7h-50.3C1490.9,1175.3,1560.8,1176.2,1569.2,1209z"
-              />
-              <linearGradient
-               id="SVGID_00000023979090182392274380000004120690310774148501_"
-               gradientUnits="userSpaceOnUse"
-               x1="1734.1719"
-               y1="977.1774"
-               x2="1851.0493"
-               y2="977.1774"
-               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000023979090182392274380000004120690310774148501_)"
-               }}
-               d="M1479.4,971c0,0-42.1,14.5-116.9,12"
-              />
-              <linearGradient
-               id="SVGID_00000048487625029556367410000013873162133577124268_"
-               gradientUnits="userSpaceOnUse"
-               x1="1749.7697"
-               y1="515.4515"
-               x2="1862.6115"
-               y2="515.4515"
-               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000048487625029556367410000013873162133577124268_)"
-               }}
-               d="M1463.8,508.7c0,0-41.4,14-112.8,13.6"
-              />
-              <linearGradient
-               id="SVGID_00000135684249067310602540000015324779406509788329_"
-               gradientUnits="userSpaceOnUse"
-               x1="1796.4009"
-               y1="448.0002"
-               x2="1843.174"
-               y2="448.0002"
-               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000135684249067310602540000015324779406509788329_)"
-               }}
-               d="M1417.2,445.8c0,0-19.8,4.5-46.8,4.4"
-              />
-              <linearGradient
-               id="SVGID_00000088109512622738278500000016033685476379661193_"
-               gradientUnits="userSpaceOnUse"
-               x1="1809.7729"
-               y1="412.1847"
-               x2="1863.7742"
-               y2="412.1847"
-               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000088109512622738278500000016033685476379661193_)"
-               }}
-               d="M1403.8,410.3c0,0-26.5,4.8-54,3.5"
-              />
-              <linearGradient
-               id="SVGID_00000054988676671110658460000011111199834713586084_"
-               gradientUnits="userSpaceOnUse"
-               x1="1816.7297"
-               y1="96.5147"
-               x2="1838.0366"
-               y2="96.5147"
-               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
-              >
-               <stop offset={0} style={{ stopColor: "#595C9D" }} />
-               <stop offset={1} style={{ stopColor: "#4C5096" }} />
-              </linearGradient>
-              <path
-               style={{
-                fill:
-                 "url(#SVGID_00000054988676671110658460000011111199834713586084_)"
-               }}
-               d="M1375.5,85.9c1.6-0.2,3.3-0.6,4.7-1.5
+                            />
+                            <linearGradient
+                              id="SVGID_00000023979090182392274380000004120690310774148501_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1734.1719"
+                              y1="977.1774"
+                              x2="1851.0493"
+                              y2="977.1774"
+                              gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000023979090182392274380000004120690310774148501_)"
+                              }}
+                              d="M1479.4,971c0,0-42.1,14.5-116.9,12"
+                            />
+                            <linearGradient
+                              id="SVGID_00000048487625029556367410000013873162133577124268_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1749.7697"
+                              y1="515.4515"
+                              x2="1862.6115"
+                              y2="515.4515"
+                              gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000048487625029556367410000013873162133577124268_)"
+                              }}
+                              d="M1463.8,508.7c0,0-41.4,14-112.8,13.6"
+                            />
+                            <linearGradient
+                              id="SVGID_00000135684249067310602540000015324779406509788329_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1796.4009"
+                              y1="448.0002"
+                              x2="1843.174"
+                              y2="448.0002"
+                              gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000135684249067310602540000015324779406509788329_)"
+                              }}
+                              d="M1417.2,445.8c0,0-19.8,4.5-46.8,4.4"
+                            />
+                            <linearGradient
+                              id="SVGID_00000088109512622738278500000016033685476379661193_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1809.7729"
+                              y1="412.1847"
+                              x2="1863.7742"
+                              y2="412.1847"
+                              gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000088109512622738278500000016033685476379661193_)"
+                              }}
+                              d="M1403.8,410.3c0,0-26.5,4.8-54,3.5"
+                            />
+                            <linearGradient
+                              id="SVGID_00000054988676671110658460000011111199834713586084_"
+                              gradientUnits="userSpaceOnUse"
+                              x1="1816.7297"
+                              y1="96.5147"
+                              x2="1838.0366"
+                              y2="96.5147"
+                              gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
+                            >
+                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                            </linearGradient>
+                            <path
+                              style={{
+                                fill:
+                                  "url(#SVGID_00000054988676671110658460000011111199834713586084_)"
+                              }}
+                              d="M1375.5,85.9c1.6-0.2,3.3-0.6,4.7-1.5
                                           c2.8-2,3-5.6,3.4-8.7c0.2-1.9,0.5-4.3,2.9-4.3c0,0,4.6,0,4.6,0c3.2,0,5.7,2.6,5.7,5.7c0,0,0,44.6,0,44.6c0-2.9-0.4-5.7-0.7-8.5
                                           c-0.3-3.1-0.4-6.2-1-9.2c-0.6-2.8-0.7-5.8-2.1-8.3c-0.9-1.7-1.8-3.4-3-4.8c-1.4-1.6-3-2.4-5-3.2
                                           C1382,86.5,1378.8,86.1,1375.5,85.9z"
-              />
-             </g>
-             <linearGradient
-              id="SVGID_00000005986370734282472240000005615253026556937898_"
-              gradientUnits="userSpaceOnUse"
-              x1="1213.5228"
-              y1="1138.031"
-              x2="1445.8116"
-              y2="1138.031"
-             >
-              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-              <stop offset={1} style={{ stopColor: "#4C5096" }} />
-             </linearGradient>
-             <path
-              style={{
-               fill:
-                "url(#SVGID_00000005986370734282472240000005615253026556937898_)"
-              }}
-              d="M1213.5,1132.5
+                            />
+                          </g>
+                          <linearGradient
+                            id="SVGID_00000005986370734282472240000005615253026556937898_"
+                            gradientUnits="userSpaceOnUse"
+                            x1="1213.5228"
+                            y1="1138.031"
+                            x2="1445.8116"
+                            y2="1138.031"
+                          >
+                            <stop offset={0} style={{ stopColor: "#595C9D" }} />
+                            <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                          </linearGradient>
+                          <path
+                            style={{
+                              fill:
+                                "url(#SVGID_00000005986370734282472240000005615253026556937898_)"
+                            }}
+                            d="M1213.5,1132.5
                                       c76.7,14.9,154.1,14.6,232.3,0C1445.8,1132.5,1344.2,1144.1,1213.5,1132.5z"
-             />
-            </g>
-           </g>
-          </g>
-         </svg>
-        </span>
-        <h4>
-         Master the Game - Learn, <br />
-         Play, &amp; Conquer with <b>GoChess</b> Academy!
-        </h4>
-       </div>
+                          />
+                        </g>
+                      </g>
+                    </g>
+                  </svg>
+                </span>
+                <h4>
+                  Master the Game - Learn, <br />
+                  Play, &amp; Conquer with <b>GoChess</b> Academy!
+                </h4>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-     </div>
-    </div>
-   </div>
-  </>
- );
+    </>
+  );
 };
 
 export default UserLogin;

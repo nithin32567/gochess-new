@@ -5,6 +5,8 @@ import Quiz from "../../models/QuizTable.js";
 import Course from "../../models/Course.js";
 
 export const addModuleToCourse = async (req, res) => {
+  console.log("addModuleToCourse =================================");
+  console.log(req.body, "req.body");
   try {
     const { course_id, module_title, module_description, display_order } =
       req.body;
@@ -114,7 +116,10 @@ export const createModule = async (req, res) => {
     }
 
     // Check for duplicate module title within the same course
-    const existingModule = await Module.findOne({ module_title });
+    const existingModule = await Module.findOne({
+      module_title,
+      course_id: { $in: [course_id] },
+    });
     if (existingModule) {
       return res.status(409).json({
         success: false,
@@ -187,11 +192,25 @@ export const getModulesAssociatedWithTheCourse = async (req, res) => {
   try {
     const { course_id } = req.params;
     console.log(course_id, "course_id");
-    const modules = await Module.find({ course_id: course_id  });
+
+    // Use $in operator to find modules where course_id array contains the specified course_id
+    const modules = await Module.find({ course_id: { $in: [course_id] } }).sort(
+      { display_order: 1 }
+    ); // Sort by display order
+
     console.log(modules, "modules");
+
+    if (!modules || modules.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No modules found for this course",
+      });
+    }
+
     res.status(200).json({ success: true, data: modules });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    console.error("Error fetching modules for course:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -199,23 +218,49 @@ export const assignCourseToTheModules = async (req, res) => {
   try {
     const { course_id, module_id } = req.body;
     console.log(course_id, module_id, "course_id, module_id");
-    const module = await Module.findByIdAndUpdate(module_id, {
-      course_id,
-    });
+
+    // Use $addToSet to add course_id to the array without duplicates
+    const module = await Module.findByIdAndUpdate(
+      module_id,
+      { $addToSet: { course_id: course_id } },
+      { new: true }
+    );
+
+    if (!module) {
+      return res.status(404).json({
+        success: false,
+        message: "Module not found",
+      });
+    }
+
     console.log(module, "module");
     res.status(200).json({ success: true, data: module });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    console.error("Error assigning course to module:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
 export const getCurrentCourseModules = async (req, res) => {
   try {
     const { id } = req.params;
-    const modules = await Module.find({ course_id: id });
+
+    // Use $in operator to find modules where course_id array contains the specified course_id
+    const modules = await Module.find({ course_id: { $in: [id] } }).sort({
+      display_order: 1,
+    }); // Sort by display order
+
+    if (!modules || modules.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No modules found for this course",
+      });
+    }
+
     res.status(200).json({ success: true, data: modules });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    console.error("Error fetching current course modules:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 

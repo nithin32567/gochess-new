@@ -7,7 +7,7 @@ export const createSubcategory = async (req, res) => {
       category_id,
       subcategory_name,
     });
-    console.log(subcategory, "subcategory");
+    // console.log(subcategory, "subcategory");
     await subcategory.save();
     res.status(201).json({ success: true, data: subcategory });
   } catch (error) {
@@ -30,7 +30,7 @@ export const getSubcategoriesByCategory = async (req, res) => {
     const subcategories = await Subcategory.find({
       category_id: req.params.categoryId,
     });
-    console.log(subcategories, "subcategories by category");
+    // console.log(subcategories, "subcategories by category");
     res.status(200).json({ success: true, data: subcategories });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

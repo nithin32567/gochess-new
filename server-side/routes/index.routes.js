@@ -10,20 +10,21 @@ import lessonRoutes from "./courses/lesson.routes.js";
 import quizRoutes from "./courses/quiz.routes.js";
 import { isSuperAdmin } from "../middleware/isSuperAdmin.js";
 import instructorRoutes from "./instrucrtors/instructor.routes.js";
-import instructorStudentRoutes from "./instructor/instructor.routes.js";
 import categoryRoutes from "./courses/category.routes.js";
 import subCategoryRoutes from "./courses/subcatgory.routes.js";
 import superAdminRoutes from "./super-admin/super.admin.routes.js";
 import authRoutes from "./auth/auth.routes.js";
 import levelRoutes from "./courses/level.routes.js";
 import languageRoutes from "./courses/language.routes.js";
-
+import meetingRoutes from "./meetings/meetings.routes.js";
 const router = express.Router();
 
 router.use("/auth/superadmin", superAdminAuthRoutes);
+
 router.use("/auth", authRoutes);
+
 router.use("/tenants", tenantRoutes);
-// router.use("/superadmin", superAdminRoute);
+
 router.use("/permissions", permissionRoutes);
 
 router.use("/roles", roleRoutes);
@@ -37,6 +38,7 @@ router.use("/categories", categoryRoutes);
 router.use("/subcategories", subCategoryRoutes);
 
 router.use("/superadmin", superAdminRoutes);
+
 router.use("/modules", moduleRoutes);
 
 router.use("/lessons", lessonRoutes);
@@ -44,10 +46,11 @@ router.use("/lessons", lessonRoutes);
 router.use("/quizzes", quizRoutes);
 
 router.use("/instructors", instructorRoutes);
-router.use("/instructor", instructorStudentRoutes);
 
 router.use("/levels", levelRoutes);
 
 router.use("/languages", languageRoutes);
+
+router.use("/meetings", meetingRoutes);
 
 export default router;

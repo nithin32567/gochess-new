@@ -5,34 +5,55 @@ import {
   deleteTenant,
   getTenantById,
   updateTenant,
+  updateStatus,
 } from "../../controllers/super-admin/tenant.controller.js";
-import { isSuperAdmin } from "../../middleware/isSuperAdmin.js";
-
-import { loginTenant } from "../../controllers/tenant/login.controller.js";
-// import { loginTenant } from "../../controllers/tenant/login.controller.js";
+import { authCheckMiddleware } from "../../middleware/authCheckMiddleware.js";
+import { authorizeRoles } from "../../middleware/authorizeRoles.js";
 import {
-  createMeeting,
-  getMeetings,
-  updateMeeting,
-} from "../../controllers/tenant/tenant.meeting.controller.js";
-import { tenantMiddleware } from "../../middleware/tenant.middleware.js";
-
+  getStudents,
+  EnrollStudents,
+} from "../../controllers/tenant/tenant.controller.js";
 const router = express.Router();
 
 router
   .route("/")
-  .post(isSuperAdmin, createTenant)
-  .get(isSuperAdmin, getAllTenants);
+  .get(authCheckMiddleware, authorizeRoles("superadmin"), getAllTenants);
 
-router.route("/update/:id").put(isSuperAdmin, updateTenant);
-// router.route("/login").post(loginTenant);
-router.route("/meetings").get(tenantMiddleware, getMeetings);
-router.route("/create_meetings").post(tenantMiddleware, createMeeting);
-router.route("/edit_meetings/:meetingId").put(tenantMiddleware, updateMeeting);
+router
+  .route("/update/:id")
+  .put(authCheckMiddleware, authorizeRoles("superadmin"), updateTenant);
+router
+  .route("/updatestatus/:id")
+  .put(authCheckMiddleware, authorizeRoles("superadmin"), updateStatus);
+
+router
+  .route("/delete/:id")
+  .delete(authCheckMiddleware, authorizeRoles("superadmin"), deleteTenant);
+
+router
+  .route("/students/get-students-by-company")
+  .get(
+    authCheckMiddleware,
+    authorizeRoles("superadmin", "tenant"),
+    getStudents
+  );
 
 router
   .route("/:id")
-  // .delete(isSuperAdmin, deleteTenant)
-  .get(isSuperAdmin, getTenantById);
-
+  .delete(authCheckMiddleware, authorizeRoles("superadmin"), deleteTenant)
+  .get(authCheckMiddleware, authorizeRoles("superadmin"), getTenantById);
+router
+  .route("/tenant/getstudents/:course_id")
+  .get(
+    authCheckMiddleware,
+    authorizeRoles("superadmin", "tenant"),
+    getStudents
+  );
+router
+  .route("/tenant/enrollstudents/:course_id")
+  .post(
+    authCheckMiddleware,
+    authorizeRoles("superadmin", "tenant"),
+    EnrollStudents
+  );
 export default router;

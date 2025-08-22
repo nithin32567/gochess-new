@@ -20,18 +20,16 @@ import nodemailer from "nodemailer";
 // export default sendMail;
 
 const transporter = nodemailer.createTransport({
-  host: "sandbox.smtp.mailtrap.io",
-  port: 2525,
-  secure: false, // true for 465, false for other ports
+  service: "gmail",
   auth: {
-    user: "cb0c59a77b0658",
-    pass: "36b58bba897820",
+    user: "synnefo.students@gmail.com",
+    pass: "jyji xsjb kdof vryy",
   },
 });
 
 const sendMail = async ({ to, subject, text }) => {
   const info = await transporter.sendMail({
-    from: "exam.synnefo@gmail.com",
+    from: "synnefo.students@gmail.com",
     to: to,
     subject: subject,
     text: text, // plain‑text body
