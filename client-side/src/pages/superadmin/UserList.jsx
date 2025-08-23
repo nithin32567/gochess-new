@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -22,14 +22,20 @@ const UserList = () => {
   const [searchValue, setSearchValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [roleId, setRoleId] = useState("");
+  const [isActive, setIsActive] = useState(false);
+  console.log(roleId, "roleId");
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
+
   useEffect(() => {
-    fetchUsers();
     fetchRoles();
     fetchTenants();
+  }, []);
+
+  useEffect(() => {
     if (tenantId && tenantId !== "") {
       fetchUsersByTenant(tenantId);
     } else {
@@ -43,11 +49,17 @@ const UserList = () => {
 
   const fetchUsersByTenant = async (tenantId) => {
     try {
+      setLoading(true);
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/users/tenant/${tenantId}`, { withCredentials: true });
       console.log(response, "response users by tenant");
-      setUsers(response.data.data);
+      if (response.data.success) {
+        setUsers(response.data.data);
+      }
     } catch (error) {
       console.log(error);
+      toast.error("Error fetching users by tenant");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -105,10 +117,19 @@ const UserList = () => {
   const filterUsers = async (roleId) => {
     console.log(roleId, "roleId");
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/users/role/${roleId}`,
-        { withCredentials: true }
-      );
+      setLoading(true);
+      let url = `${import.meta.env.VITE_API_URL}/users/role/${roleId}`;
+
+      // If tenant is selected, add tenant filter as query parameter
+      const params = {};
+      if (tenantId && tenantId !== "") {
+        params.tenant_id = tenantId;
+      }
+
+      const response = await axios.get(url, {
+        params,
+        withCredentials: true
+      });
       console.log(response, "response filter users");
       if (response.data.success) {
         setUsers(response.data.data);
@@ -116,16 +137,41 @@ const UserList = () => {
     } catch (error) {
       console.log(error);
       toast.error("Error filtering users");
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Debounced search function to prevent too many API calls
+  const debouncedSearch = useCallback(
+    (() => {
+      let timeoutId;
+      return (searchValue) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          searchUsers(searchValue);
+        }, 500); // Wait 500ms after user stops typing
+      };
+    })(),
+    [tenantId]
+  );
 
   const searchUsers = async (searchValue) => {
     console.log(searchValue, "searchValue");
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/users/search/${searchValue}`,
-        { withCredentials: true }
-      );
+      setLoading(true);
+      let url = `${import.meta.env.VITE_API_URL}/users/search-users/${searchValue}`;
+
+      // If tenant is selected, add tenant filter as query parameter
+      const params = {};
+      if (tenantId && tenantId !== "") {
+        params.tenant_id = tenantId;
+      }
+
+      const response = await axios.get(url, {
+        params,
+        withCredentials: true
+      });
       console.log(response, "response search users");
       if (response.data.success) {
         setUsers(response.data.data);
@@ -133,6 +179,8 @@ const UserList = () => {
     } catch (error) {
       console.log(error);
       toast.error("Error searching users");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -144,18 +192,30 @@ const UserList = () => {
     if (!confirm) {
       return;
     }
+
     try {
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/users/toggle-status/${userId}`,
-        { withCredentials: true }
-      );
+      const response = await axios.put(`${import.meta.env.VITE_API_URL}/users/update/${userId}`, { is_active: !isActive }, { withCredentials: true })
+      console.log(response, "response update user")
+
       if (response.data.success) {
-        toast.success("User status toggled successfully");
-        fetchUsers();
+        toast.success(response.data.message || "User status changed successfully");
+        setIsActive(!isActive);
+        // Refresh based on current filters
+        if (tenantId && tenantId !== "") {
+          fetchUsersByTenant(tenantId);
+        } else {
+          fetchUsers();
+        }
+      } else {
+        toast.error(response.data.message || "Failed to update user status");
       }
     } catch (error) {
       console.log(error);
-      toast.error("Error toggling user status");
+      if (error.response && error.response.data) {
+        toast.error(error.response.data.message || "Error toggling user status");
+      } else {
+        toast.error("Error toggling user status");
+      }
     }
   };
 
@@ -170,7 +230,12 @@ const UserList = () => {
       console.log(response, "response delete user");
       if (response.data.success) {
         toast.success("User deleted successfully");
-        fetchUsers();
+        // Refresh based on current filters
+        if (tenantId && tenantId !== "") {
+          fetchUsersByTenant(tenantId);
+        } else {
+          fetchUsers();
+        }
       }
     } catch (error) {
       console.log(error);
@@ -197,8 +262,13 @@ const UserList = () => {
               <div className="col-lg-4  col-md-6">
                 <div className="row">
                   <div className="col-lg-6 col-md-6 col-7">
-                    <select name="" id="" defaultValue={""} onChange={(e) => setTenantId(e.target.value)}>
-                      <option disabled="" value="">
+                    <select
+                      name=""
+                      id=""
+                      value={tenantId}
+                      onChange={(e) => setTenantId(e.target.value)}
+                    >
+                      <option value="">
                         Select Tenant
                       </option>
                       {tenants.map((tenant) => (
@@ -229,16 +299,20 @@ const UserList = () => {
               <div className="col-lg-4 col-md-6">
                 <div className="row">
                   <div className="col-lg-6 col-md-6 col-7">
-                    <input
-                      onChange={(e) => {
-                        const searchValue = e.target.value;
-                        if (searchValue === "") {
-                          fetchUsers();
-                        } else {
-                          searchUsers(searchValue);
-                        }
-                      }}
-                      type="text" placeholder="Search" />
+                                         <input
+                       onChange={(e) => {
+                         const searchValue = e.target.value;
+                         if (searchValue === "") {
+                           if (tenantId && tenantId !== "") {
+                             fetchUsersByTenant(tenantId);
+                           } else {
+                             fetchUsers();
+                           }
+                         } else {
+                           debouncedSearch(searchValue);
+                         }
+                       }}
+                       type="text" placeholder="Search" />
                   </div>
                   <div className="col-lg-6 col-md-6 col-5">
                     <select
@@ -247,7 +321,11 @@ const UserList = () => {
                       onChange={(e) => {
                         const selectedRoleId = e.target.value;
                         if (selectedRoleId === "all") {
-                          fetchUsers();
+                          if (tenantId && tenantId !== "") {
+                            fetchUsersByTenant(tenantId);
+                          } else {
+                            fetchUsers();
+                          }
                         } else {
                           filterUsers(selectedRoleId);
                         }
@@ -255,7 +333,9 @@ const UserList = () => {
                     >
                       <option value="all">All Users</option>
                       {roles.map((role) => (
-                        <option value={role._id} key={role._id}>
+                        <option
+                          onChange={(e) => setRoleId(e.target.value)}
+                          value={role._id} key={role._id}>
                           {role.name}
                         </option>
                       ))}
@@ -278,17 +358,19 @@ const UserList = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user, i) => (
+                  {users?.length > 0 ? users?.map((user, i) => (
                     <tr key={user._id}>
                       <th scope="row">{i + 1}</th>
-                      <td>{user.fname} {user.lname}</td>
-                      <td>{user.email}</td>
-                      <td>{user.role?.name || "N/A"}</td>
-                      <td>{user.tenant?.name || "N/A"}</td>
+                      <td>{user?.user_id?.fname} {user?.user_id?.lname}</td>
+                      <td>{user?.login?.email}</td>
+                      <td>{user?.role?.name || "N/A"}</td>
+                      <td>{user?.tenant?.name || "N/A"}</td>
+
                       <td>
                         <span
+                          style={{ cursor: 'pointer' }}
                           onClick={() => toggleUserStatus(user._id)}
-                          className={`px-2 py-1 border-xl text-sm cursor-pointer ${user.is_active
+                          className={`px-2 py-1 border-xl text-sm  ${user.is_active
                             ? "bg-success text-white"
                             : "bg-danger text-white"
                             }`}
@@ -312,7 +394,9 @@ const UserList = () => {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  )) : <tr>
+                    <td colSpan={6} className="text-center">No users found</td>
+                  </tr>}
                 </tbody>
               </table>
               <Pagination

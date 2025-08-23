@@ -11,6 +11,8 @@ import {
   toggleUserStatus,
   requestPasswordReset,
   getUsersCount,
+  searchUsersSuperadmin,
+  getUsersByRoleSuperadmin,
 } from "../../controllers/user/user.controller.js";
 import { tenantMiddleware } from "../../middleware/tenant.middleware.js";
 import { authMiddleware } from "../../middleware/auth.middleware.js";
@@ -30,6 +32,8 @@ import { authCheckMiddleware } from "../../middleware/authCheckMiddleware.js";
 router
   .route("/")
   .get(authCheckMiddleware, authorizeRoles("superadmin"), getAllUsers)
+
+  
   .post(authCheckMiddleware, authorizeRoles("superadmin"), createUser);
 
 
@@ -40,6 +44,15 @@ router.route("/delete/:id").delete(authCheckMiddleware, authorizeRoles("superadm
 router.route("/update/:id").put(authCheckMiddleware, authorizeRoles("superadmin", "tenant"), updateUser);
 
 router.route("/single/:id").get(authCheckMiddleware, authorizeRoles("superadmin", "tenant"), getUserById);
+
+router.route("/role/:role_id").get(authCheckMiddleware, authorizeRoles("superadmin"), getUsersByRoleSuperadmin);
+
+router.route("/search/:searchValue").get(authCheckMiddleware, authorizeRoles("superadmin"), searchUsersSuperadmin);
+
+router.route("/toggle-status/:id").put(authCheckMiddleware, authorizeRoles("superadmin"), toggleUserStatus);
+
+// Add route for regular searchUsers function
+router.route("/search-users/:searchValue").get(authCheckMiddleware, authorizeRoles("superadmin"), searchUsers);
 
 // router.route('/update-instructor').put(authMiddleware);
 // router.route("/count").get(authMiddleware, isSuperAdmin, getUsersCount);

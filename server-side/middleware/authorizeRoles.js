@@ -1,6 +1,6 @@
 export const authorizeRoles = (...roles) => {
   // console.log("TTTTTTTTTTTTTTTTTTTTTTTTTT");
-
+  
   return (req, res, next) => {
     // console.log(req.user, "req.user inside the authorizeRoles");
     if (!roles.includes(req.user.role.toLowerCase().trim())) {

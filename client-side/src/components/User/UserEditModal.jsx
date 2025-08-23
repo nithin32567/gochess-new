@@ -14,6 +14,7 @@ const UserEditModal = ({ user_id, setEditModalOpen, roles, tenants }) => {
   role_id: user?.roleData?._id || '',
   tenant_id: user?.tenantData?._id || '',
   is_active: user?.loginData?.is_active || false,
+  email: user?.loginData?.email || '',
  })
 
 
@@ -37,6 +38,7 @@ const UserEditModal = ({ user_id, setEditModalOpen, roles, tenants }) => {
     role_id: user?.roleData?._id || '',
     tenant_id: user?.tenantData?._id || '',
     is_active: user?.loginData?.is_active || false,
+    email: user?.loginData?.email || '',
    })
   }
  }, [user])
@@ -90,7 +92,7 @@ const UserEditModal = ({ user_id, setEditModalOpen, roles, tenants }) => {
     </div>
     <div className="trainer-input-item">
      <input
-      style={{ backgroundColor: 'gray', color: 'white', cursor: 'not-allowed' }}
+      style={{ backgroundColor: '#171717', color: 'white', cursor: 'not-allowed' }}
       type="email"
       name="email"
       disabled

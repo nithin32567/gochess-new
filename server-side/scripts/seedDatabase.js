@@ -26,7 +26,7 @@ const connectDB = async () => {
   }
 };
 
- 
+
 const seedLessonTypes = async () => {
   try {
     console.log("Checking for existing lesson types...");
