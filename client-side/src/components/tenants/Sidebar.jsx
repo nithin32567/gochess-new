@@ -63,6 +63,11 @@ const TenantSidebar = () => {
    icon: "fa-regular fa-calendar-check",
    path: "/tenant/meetings",
   },
+  {
+   label: "Settings",
+   icon: "fa-solid fa-gear",
+   path: "/tenant/settings",
+  },
   // {
   //  label: "Logout",
   //  icon: <MdLogout className="w-6 h-6" />,
@@ -103,7 +108,7 @@ const TenantSidebar = () => {
 
     </ul>
     <div className="sidebarfooter">
-     <button className="settings-btn">
+     <button className="settings-btn" onClick={() => navigate('/tenant/settings')}>
       <i className="fa-solid fa-gear" />
      </button>
      <button className="customersupport-btn">

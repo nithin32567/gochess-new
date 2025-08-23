@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function UserLogin() {
   // login the user and get the current user details store in the user slice
 
   const [signinData, setSigninData] = useState({
-    email: "",
+    email: "",                                                                                                                                                                                                                                                                                                  
     password: "",
   });
   const API_URL = import.meta.env.VITE_API_URL;
@@ -19,25 +20,55 @@ function UserLogin() {
     console.log(signinData);
     try {
       setLoading(true);
+      setError(""); // Clear any previous errors
+
       const response = await axios.post(`${API_URL}/users/login`, signinData, {
         withCredentials: true,
       });
+
+      console.log(response.data, "response.data");
       setLoading(false);
-      const { user } = response.data || {};
-      console.log(user)
-      localStorage.setItem("user-email", signinData.email);
+      const { user, message } = response.data || {};
+      console.log(user);
+
+      // Show success toast
+      toast.success(message || "Login successful!", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
+      // localStorage.setItem("user-email", signinData.email);
+
+      // Navigate based on user role
       if (user.role.toLowerCase() === "student") {
         navigate("/student");
       } else if (user.role.toLowerCase() === "instructor") {
         navigate("/instructor");
-      } else if (user.role.toLowerCase() === "tenantadmin" || user.role.toLowerCase() === "tenant") {
+      } else if (
+        user.role.toLowerCase() === "tenantadmin" ||
+        user.role.toLowerCase() === "tenant"
+      ) {
         navigate("/tenant");
       }
-
     } catch (error) {
       setLoading(false);
       console.log("error", error);
-      setError(error.response?.data?.message ?? "Login failed");
+      const errorMessage = error.response?.data?.message ?? "Login failed";
+      setError(errorMessage);
+
+      // Show error toast
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -51,6 +82,7 @@ function UserLogin() {
 
   return (
     <>
+      <ToastContainer />
       <div className="container-fluid">
         <div className="row">
           <div className="col-lg-6">
@@ -90,9 +122,7 @@ function UserLogin() {
                             placeholder="Password"
                           />
                         </div>
-                        <button
-                          disabled={loading}
-                          className="login-btn">
+                        <button disabled={loading} className="login-btn">
                           {loading ? "Signing in..." : "Sign in"}
                           <i className="fa-solid fa-arrow-right" />
                         </button>
@@ -131,7 +161,7 @@ function UserLogin() {
                       type="text/css"
                       dangerouslySetInnerHTML={{
                         __html:
-                          "\n         .st0 {\n          fill: #4C5096;\n         }\n\n         .st1 {\n          fill: #898CBA;\n         }\n\n         .st2 {\n          fill: #6A6EA8;\n         }\n\n         .st3 {\n          fill: #FFFFFF;\n         }\n\n         .st4 {\n          fill: url(#SVGID_1_);\n         }\n\n         .st5 {\n          fill: url(#SVGID_00000065781671183557813540000001240956633401581964_);\n         }\n\n         .st6 {\n          fill: url(#SVGID_00000093149866314237875110000005859598420132522409_);\n         }\n\n         .st7 {\n          fill: url(#SVGID_00000166669252271789139300000009859919807507595395_);\n         }\n\n         .st8 {\n          fill: url(#SVGID_00000167379713771336291030000017050714956712727939_);\n         }\n\n         .st9 {\n          fill: url(#SVGID_00000109005845510332530480000001753773457119822985_);\n         }\n\n         .st10 {\n          fill: url(#SVGID_00000114762259417893387220000007103015846633460903_);\n         }\n\n         .st11 {\n          fill: url(#SVGID_00000168824732648935138520000014813523939525341858_);\n         }\n\n         .st12 {\n          fill: url(#SVGID_00000016754390569920132810000007910830420926639241_);\n         }\n\n         .st13 {\n          fill: url(#SVGID_00000130616465742927940770000010868951257973492911_);\n         }\n\n         .st14 {\n          fill: url(#SVGID_00000181057210791690891820000008306502762905546649_);\n         }\n\n         .st15 {\n          fill: url(#SVGID_00000027601050742399018620000003329181226869503908_);\n         }\n\n         .st16 {\n          fill: url(#SVGID_00000047046447255006354450000015362830834049108126_);\n         }\n\n         .st17 {\n          fill: url(#SVGID_00000160181984244639355350000006849731399617072781_);\n         }\n\n         .st18 {\n          fill: url(#SVGID_00000110461072543790490730000001376691075123253145_);\n         }\n\n         .st19 {\n          fill: url(#SVGID_00000060016391771975021320000003327877525391189657_);\n         }\n\n         .st20 {\n          fill: url(#SVGID_00000119102486081552691510000002511534354815293326_);\n         }\n\n         .st21 {\n          fill: url(#SVGID_00000172436198931803620250000000141432758212586172_);\n         }\n\n         .st22 {\n          fill: url(#SVGID_00000133502883896965696080000006478994816388792496_);\n         }\n        "
+                          "\n         .st0 {\n          fill: #4C5096;\n         }\n\n         .st1 {\n          fill: #898CBA;\n         }\n\n         .st2 {\n          fill: #6A6EA8;\n         }\n\n         .st3 {\n          fill: #FFFFFF;\n         }\n\n         .st4 {\n          fill: url(#SVGID_1_);\n         }\n\n         .st5 {\n          fill: url(#SVGID_00000065781671183557813540000001240956633401581964_);\n         }\n\n         .st6 {\n          fill: url(#SVGID_00000093149866314237875110000005859598420132522409_);\n         }\n\n         .st7 {\n          fill: url(#SVGID_00000166669252271789139300000009859919807507595395_);\n         }\n\n         .st8 {\n          fill: url(#SVGID_00000167379713771336291030000017050714956712727939_);\n         }\n\n         .st9 {\n          fill: url(#SVGID_00000109005845510332530480000001753773457119822985_);\n         }\n\n         .st10 {\n          fill: url(#SVGID_00000114762259417893387220000007103015846633460903_);\n         }\n\n         .st11 {\n          fill: url(#SVGID_00000168824732648935138520000014813523939525341858_);\n         }\n\n         .st12 {\n          fill: url(#SVGID_00000016754390569920132810000007910830420926639241_);\n         }\n\n         .st13 {\n          fill: url(#SVGID_00000130616465742927940770000010868951257973492911_);\n         }\n\n         .st14 {\n          fill: url(#SVGID_00000181057210791690891820000008306502762905546649_);\n         }\n\n         .st15 {\n          fill: url(#SVGID_00000027601050742399018620000003329181226869503908_);\n         }\n\n         .st16 {\n          fill: url(#SVGID_00000047046447255006354450000015362830834049108126_);\n         }\n\n         .st17 {\n          fill: url(#SVGID_00000160181984244639355350000006849731399617072781_);\n         }\n\n         .st18 {\n          fill: url(#SVGID_00000110461072543790490730000001376691075123253145_);\n         }\n\n         .st19 {\n          fill: url(#SVGID_00000060016391771975021320000003327877525391189657_);\n         }\n\n         .st20 {\n          fill: url(#SVGID_00000119102486081552691510000002511534354815293326_);\n         }\n\n         .st21 {\n          fill: url(#SVGID_00000172436198931803620250000000141432758212586172_);\n         }\n\n         .st22 {\n          fill: url(#SVGID_00000133502883896965696080000006478994816388792496_);\n         }\n        ",
                       }}
                     />
                     <g id="Background"></g>
@@ -355,8 +385,14 @@ function UserLogin() {
                               x2="1253.7787"
                               y2="358.507"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               className="st4"
@@ -370,13 +406,18 @@ function UserLogin() {
                               x2="1275.4979"
                               y2="594.1759"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000041980951777084297370000000018691490506178728_)"
+                                fill: "url(#SVGID_00000041980951777084297370000000018691490506178728_)",
                               }}
                               d="M1270.2,550.6c0,0,27,294.5-64.5,403.1
                                           c0,0-11.8,6.5,28.6,6.5c36.6,0,32.4-15.1,35.4-25.9c2.6-9.6,36.3-206.8,9.1-383.7L1270.2,550.6z"
@@ -389,13 +430,18 @@ function UserLogin() {
                               x2="1147.3389"
                               y2="1106.1144"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000170236674667234227730000015568407594079539083_)"
+                                fill: "url(#SVGID_00000170236674667234227730000015568407594079539083_)",
                               }}
                               d="M1147.3,1067.1
                                           c-18.5,21.5-78.3,23.5-53,59.3c24,33.9,59.9,15.6,41.9-5.4S1147.3,1067.1,1147.3,1067.1z"
@@ -408,13 +454,18 @@ function UserLogin() {
                               x2="1150.3428"
                               y2="1192.1504"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000065067069669786517880000009989757699838421662_)"
+                                fill: "url(#SVGID_00000065067069669786517880000009989757699838421662_)",
                               }}
                               d="M1072,1209L1072,1209
                                           c0-28,9.4-33.7,28-33.7h50.3C1150.3,1175.3,1080.5,1176.2,1072,1209z"
@@ -427,13 +478,18 @@ function UserLogin() {
                               x2="1278.7511"
                               y2="977.1774"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000129175436613359878960000013121955249681103784_)"
+                                fill: "url(#SVGID_00000129175436613359878960000013121955249681103784_)",
                               }}
                               d="M1161.9,971c0,0,42.1,14.5,116.9,12"
                             />
@@ -445,13 +501,18 @@ function UserLogin() {
                               x2="1290.3132"
                               y2="515.4515"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000044899055665869141630000010098525276641180337_)"
+                                fill: "url(#SVGID_00000044899055665869141630000010098525276641180337_)",
                               }}
                               d="M1177.5,508.7c0,0,41.4,14,112.8,13.6"
                             />
@@ -463,13 +524,18 @@ function UserLogin() {
                               x2="1270.8759"
                               y2="448.0002"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000145018309647927195600000000664931754878941100_)"
+                                fill: "url(#SVGID_00000145018309647927195600000000664931754878941100_)",
                               }}
                               d="M1224.1,445.8c0,0,19.8,4.5,46.8,4.4"
                             />
@@ -481,13 +547,18 @@ function UserLogin() {
                               x2="1291.476"
                               y2="412.1847"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000118365789383580628670000011883230211708224170_)"
+                                fill: "url(#SVGID_00000118365789383580628670000011883230211708224170_)",
                               }}
                               d="M1237.5,410.3c0,0,26.5,4.8,54,3.5"
                             />
@@ -499,13 +570,18 @@ function UserLogin() {
                               x2="1265.7384"
                               y2="96.5147"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000026857857204708519740000004243998861410072762_)"
+                                fill: "url(#SVGID_00000026857857204708519740000004243998861410072762_)",
                               }}
                               d="M1265.7,85.9c-1.6-0.2-3.3-0.6-4.7-1.5
                                           c-2.8-2-3-5.6-3.4-8.7c-0.2-1.9-0.5-4.3-2.9-4.3c0,0-4.6,0-4.6,0c-3.2,0-5.7,2.6-5.7,5.7c0,0,0,44.6,0,44.6
@@ -523,13 +599,18 @@ function UserLogin() {
                               y2="358.507"
                               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000076597935694564376370000001036286694383960231_)"
+                                fill: "url(#SVGID_00000076597935694564376370000001036286694383960231_)",
                               }}
                               d="M1453.7,230.3c0,0-27.6,3.9-57.8,1.6
                                           c0,0-11.3,57.8-9,139.7C1386.8,371.6,1396.1,257.6,1453.7,230.3z"
@@ -543,13 +624,18 @@ function UserLogin() {
                               y2="594.1759"
                               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000161630082801971884510000001141588819199940017_)"
+                                fill: "url(#SVGID_00000161630082801971884510000001141588819199940017_)",
                               }}
                               d="M1371.1,550.6c0,0-27,294.5,64.5,403.1
                                           c0,0,11.8,6.5-28.6,6.5c-36.6,0-32.4-15.1-35.4-25.9c-2.6-9.6-36.3-206.8-9.1-383.7L1371.1,550.6z"
@@ -563,13 +649,18 @@ function UserLogin() {
                               y2="1106.1144"
                               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000062169732060962829160000009076110642971728025_)"
+                                fill: "url(#SVGID_00000062169732060962829160000009076110642971728025_)",
                               }}
                               d="M1493.9,1067.1
                                           c18.5,21.5,78.3,23.5,53,59.3c-24,33.9-59.9,15.6-41.9-5.4S1493.9,1067.1,1493.9,1067.1z"
@@ -583,13 +674,18 @@ function UserLogin() {
                               y2="1192.1504"
                               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000152261414955623538290000001931788559531132057_)"
+                                fill: "url(#SVGID_00000152261414955623538290000001931788559531132057_)",
                               }}
                               d="M1569.2,1209L1569.2,1209
                                           c0-28-9.4-33.7-28-33.7h-50.3C1490.9,1175.3,1560.8,1176.2,1569.2,1209z"
@@ -603,13 +699,18 @@ function UserLogin() {
                               y2="977.1774"
                               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000023979090182392274380000004120690310774148501_)"
+                                fill: "url(#SVGID_00000023979090182392274380000004120690310774148501_)",
                               }}
                               d="M1479.4,971c0,0-42.1,14.5-116.9,12"
                             />
@@ -622,13 +723,18 @@ function UserLogin() {
                               y2="515.4515"
                               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000048487625029556367410000013873162133577124268_)"
+                                fill: "url(#SVGID_00000048487625029556367410000013873162133577124268_)",
                               }}
                               d="M1463.8,508.7c0,0-41.4,14-112.8,13.6"
                             />
@@ -641,13 +747,18 @@ function UserLogin() {
                               y2="448.0002"
                               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000135684249067310602540000015324779406509788329_)"
+                                fill: "url(#SVGID_00000135684249067310602540000015324779406509788329_)",
                               }}
                               d="M1417.2,445.8c0,0-19.8,4.5-46.8,4.4"
                             />
@@ -660,13 +771,18 @@ function UserLogin() {
                               y2="412.1847"
                               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000088109512622738278500000016033685476379661193_)"
+                                fill: "url(#SVGID_00000088109512622738278500000016033685476379661193_)",
                               }}
                               d="M1403.8,410.3c0,0-26.5,4.8-54,3.5"
                             />
@@ -679,13 +795,18 @@ function UserLogin() {
                               y2="96.5147"
                               gradientTransform="matrix(-1 0 0 1 3213.5833 0)"
                             >
-                              <stop offset={0} style={{ stopColor: "#595C9D" }} />
-                              <stop offset={1} style={{ stopColor: "#4C5096" }} />
+                              <stop
+                                offset={0}
+                                style={{ stopColor: "#595C9D" }}
+                              />
+                              <stop
+                                offset={1}
+                                style={{ stopColor: "#4C5096" }}
+                              />
                             </linearGradient>
                             <path
                               style={{
-                                fill:
-                                  "url(#SVGID_00000054988676671110658460000011111199834713586084_)"
+                                fill: "url(#SVGID_00000054988676671110658460000011111199834713586084_)",
                               }}
                               d="M1375.5,85.9c1.6-0.2,3.3-0.6,4.7-1.5
                                           c2.8-2,3-5.6,3.4-8.7c0.2-1.9,0.5-4.3,2.9-4.3c0,0,4.6,0,4.6,0c3.2,0,5.7,2.6,5.7,5.7c0,0,0,44.6,0,44.6c0-2.9-0.4-5.7-0.7-8.5
@@ -706,8 +827,7 @@ function UserLogin() {
                           </linearGradient>
                           <path
                             style={{
-                              fill:
-                                "url(#SVGID_00000005986370734282472240000005615253026556937898_)"
+                              fill: "url(#SVGID_00000005986370734282472240000005615253026556937898_)",
                             }}
                             d="M1213.5,1132.5
                                       c76.7,14.9,154.1,14.6,232.3,0C1445.8,1132.5,1344.2,1144.1,1213.5,1132.5z"
@@ -728,6 +848,6 @@ function UserLogin() {
       </div>
     </>
   );
-};
+}
 
 export default UserLogin;

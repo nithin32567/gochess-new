@@ -23,12 +23,10 @@ const UserList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [roleId, setRoleId] = useState("");
-  const [isActive, setIsActive] = useState(false);
   console.log(roleId, "roleId");
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
-
 
   useEffect(() => {
     fetchRoles();
@@ -50,7 +48,10 @@ const UserList = () => {
   const fetchUsersByTenant = async (tenantId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/users/tenant/${tenantId}`, { withCredentials: true });
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/users/tenant/${tenantId}`,
+        { withCredentials: true }
+      );
       console.log(response, "response users by tenant");
       if (response.data.success) {
         setUsers(response.data.data);
@@ -61,8 +62,7 @@ const UserList = () => {
     } finally {
       setLoading(false);
     }
-  }
-
+  };
 
   const fetchUsers = async () => {
     try {
@@ -128,7 +128,7 @@ const UserList = () => {
 
       const response = await axios.get(url, {
         params,
-        withCredentials: true
+        withCredentials: true,
       });
       console.log(response, "response filter users");
       if (response.data.success) {
@@ -160,7 +160,9 @@ const UserList = () => {
     console.log(searchValue, "searchValue");
     try {
       setLoading(true);
-      let url = `${import.meta.env.VITE_API_URL}/users/search-users/${searchValue}`;
+      let url = `${
+        import.meta.env.VITE_API_URL
+      }/users/search-users/${searchValue}`;
 
       // If tenant is selected, add tenant filter as query parameter
       const params = {};
@@ -170,7 +172,7 @@ const UserList = () => {
 
       const response = await axios.get(url, {
         params,
-        withCredentials: true
+        withCredentials: true,
       });
       console.log(response, "response search users");
       if (response.data.success) {
@@ -185,6 +187,13 @@ const UserList = () => {
   };
 
   const toggleUserStatus = async (userId) => {
+    // Find the user in the current users array
+    const user = users.find((u) => u._id === userId);
+    if (!user) {
+      toast.error("User not found");
+      return;
+    }
+
     // confirm the action
     const confirm = window.confirm(
       "Are you sure you want to toggle the user status?"
@@ -194,25 +203,33 @@ const UserList = () => {
     }
 
     try {
-      const response = await axios.put(`${import.meta.env.VITE_API_URL}/users/update/${userId}`, { is_active: !isActive }, { withCredentials: true })
-      console.log(response, "response update user")
+      const response = await axios.put(
+        `${import.meta.env.VITE_API_URL}/users/update/${userId}`,
+        { is_active: !user.is_active },
+        { withCredentials: true }
+      );
+      console.log(response, "response update user");
 
       if (response.data.success) {
-        toast.success(response.data.message || "User status changed successfully");
-        setIsActive(!isActive);
-        // Refresh based on current filters
-        if (tenantId && tenantId !== "") {
-          fetchUsersByTenant(tenantId);
-        } else {
-          fetchUsers();
-        }
+        toast.success(
+          response.data.message || "User status changed successfully"
+        );
+
+        // Update the user in the local state
+        setUsers((prevUsers) =>
+          prevUsers.map((u) =>
+            u._id === userId ? { ...u, is_active: !u.is_active } : u
+          )
+        );
       } else {
         toast.error(response.data.message || "Failed to update user status");
       }
     } catch (error) {
       console.log(error);
       if (error.response && error.response.data) {
-        toast.error(error.response.data.message || "Error toggling user status");
+        toast.error(
+          error.response.data.message || "Error toggling user status"
+        );
       } else {
         toast.error("Error toggling user status");
       }
@@ -226,7 +243,10 @@ const UserList = () => {
 
   const handleDeleteUser = async (userId) => {
     try {
-      const response = await axios.delete(`${import.meta.env.VITE_API_URL}/users/delete/${userId}`, { withCredentials: true });
+      const response = await axios.delete(
+        `${import.meta.env.VITE_API_URL}/users/delete/${userId}`,
+        { withCredentials: true }
+      );
       console.log(response, "response delete user");
       if (response.data.success) {
         toast.success("User deleted successfully");
@@ -241,9 +261,7 @@ const UserList = () => {
       console.log(error);
       toast.error("Error deleting user");
     }
-  }
-
-
+  };
 
   if (loading) {
     return (
@@ -268,9 +286,7 @@ const UserList = () => {
                       value={tenantId}
                       onChange={(e) => setTenantId(e.target.value)}
                     >
-                      <option value="">
-                        Select Tenant
-                      </option>
+                      <option value="">Select Tenant</option>
                       {tenants.map((tenant) => (
                         <option value={tenant._id} key={tenant._id}>
                           {tenant.name}
@@ -299,20 +315,22 @@ const UserList = () => {
               <div className="col-lg-4 col-md-6">
                 <div className="row">
                   <div className="col-lg-6 col-md-6 col-7">
-                                         <input
-                       onChange={(e) => {
-                         const searchValue = e.target.value;
-                         if (searchValue === "") {
-                           if (tenantId && tenantId !== "") {
-                             fetchUsersByTenant(tenantId);
-                           } else {
-                             fetchUsers();
-                           }
-                         } else {
-                           debouncedSearch(searchValue);
-                         }
-                       }}
-                       type="text" placeholder="Search" />
+                    <input
+                      onChange={(e) => {
+                        const searchValue = e.target.value;
+                        if (searchValue === "") {
+                          if (tenantId && tenantId !== "") {
+                            fetchUsersByTenant(tenantId);
+                          } else {
+                            fetchUsers();
+                          }
+                        } else {
+                          debouncedSearch(searchValue);
+                        }
+                      }}
+                      type="text"
+                      placeholder="Search"
+                    />
                   </div>
                   <div className="col-lg-6 col-md-6 col-5">
                     <select
@@ -335,7 +353,9 @@ const UserList = () => {
                       {roles.map((role) => (
                         <option
                           onChange={(e) => setRoleId(e.target.value)}
-                          value={role._id} key={role._id}>
+                          value={role._id}
+                          key={role._id}
+                        >
                           {role.name}
                         </option>
                       ))}
@@ -358,45 +378,56 @@ const UserList = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {users?.length > 0 ? users?.map((user, i) => (
-                    <tr key={user._id}>
-                      <th scope="row">{i + 1}</th>
-                      <td>{user?.user_id?.fname} {user?.user_id?.lname}</td>
-                      <td>{user?.login?.email}</td>
-                      <td>{user?.role?.name || "N/A"}</td>
-                      <td>{user?.tenant?.name || "N/A"}</td>
+                  {users?.length > 0 ? (
+                    users?.map((user, i) => (
+                      <tr key={user._id}>
+                        <th scope="row">{i + 1}</th>
+                        <td>
+                          {user?.user_id?.fname} {user?.user_id?.lname}
+                        </td>
+                        <td>{user?.login?.email}</td>
+                        <td>{user?.role?.name || "N/A"}</td>
+                        <td>{user?.tenant?.name || "N/A"}</td>
 
-                      <td>
-                        <span
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => toggleUserStatus(user._id)}
-                          className={`px-2 py-1 border-xl text-sm  ${user.is_active
-                            ? "bg-success text-white"
-                            : "bg-danger text-white"
+                        <td>
+                          <span
+                            style={{ cursor: "pointer" }}
+                            onClick={() => toggleUserStatus(user._id)}
+                            className={`px-2 py-1 border-xl text-sm  ${
+                              user.is_active
+                                ? "bg-success text-white"
+                                : "bg-danger text-white"
                             }`}
-                        >
-                          {user.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => {
-                            setUserToEdit(user._id);
-                            setEditModalOpen(true);
-                          }}
-                          className="edit">
-                          <i className="fa-solid fa-pen-to-square" />
-                        </button>{" "}
-                        <button
-                          onClick={() => handleDeleteUser(user._id)}
-                          className="delete">
-                          <i className="fa-solid fa-trash-can" />
-                        </button>
+                          >
+                            {user.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => {
+                              setUserToEdit(user._id);
+                              setEditModalOpen(true);
+                            }}
+                            className="edit"
+                          >
+                            <i className="fa-solid fa-pen-to-square" />
+                          </button>{" "}
+                          <button
+                            onClick={() => handleDeleteUser(user._id)}
+                            className="delete"
+                          >
+                            <i className="fa-solid fa-trash-can" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="text-center">
+                        No users found
                       </td>
                     </tr>
-                  )) : <tr>
-                    <td colSpan={6} className="text-center">No users found</td>
-                  </tr>}
+                  )}
                 </tbody>
               </table>
               <Pagination
@@ -410,7 +441,12 @@ const UserList = () => {
       </main>
       {editModalOpen && (
         <Popup>
-          <UserEditModal user_id={userToEdit} setEditModalOpen={setEditModalOpen} roles={roles} tenants={tenants} />
+          <UserEditModal
+            user_id={userToEdit}
+            setEditModalOpen={setEditModalOpen}
+            roles={roles}
+            tenants={tenants}
+          />
         </Popup>
       )}
     </>

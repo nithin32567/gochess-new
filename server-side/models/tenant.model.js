@@ -14,10 +14,10 @@ const tenantSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
-      match: [
-        /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-        "Please enter a valid subdomain (only lowercase letters, numbers, and hyphens)",
-      ],
+      // match: [
+      //   /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      //   "Please enter a valid subdomain (only lowercase letters, numbers, and hyphens)",
+      // ],
     },
     is_active: {
       type: Boolean,

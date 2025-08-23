@@ -7,10 +7,9 @@ import {
   enableTenant,
 } from "../../controllers/super-admin/super.admin.controller.js";
 import { isSuperAdmin } from "../../middleware/isSuperAdmin.js";
-import { createTenant } from "../../controllers/super-admin/tenant.controller.js";
+import { createTenant, deleteTenant } from "../../controllers/super-admin/tenant.controller.js";
 import { authCheckMiddleware } from "../../middleware/authCheckMiddleware.js";
 import { authorizeRoles } from "../../middleware/authorizeRoles.js";
-import { deleteTenant } from "../../controllers/super-admin/tenant.controller.js";
 
 const router = express.Router();
 
@@ -33,14 +32,15 @@ router
   .post(authCheckMiddleware, authorizeRoles("superadmin"), createTenant);
 
 router
-  .route("/tenant/delete/:tenantId")
-  .delete(authCheckMiddleware, authorizeRoles("superadmin"), deleteTenant);
-
-router
   .route("/tenant/disable/:tenantId")
   .post(authCheckMiddleware, authorizeRoles("superadmin"), disableTenant);
 
 router
   .route("/tenant/enable/:tenantId")
   .post(authCheckMiddleware, authorizeRoles("superadmin"), enableTenant);
+
+router
+  .route("/tenant/:tenantId")
+  .delete(authCheckMiddleware, authorizeRoles("superadmin"), deleteTenant);
+
 export default router;

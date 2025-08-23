@@ -1,139 +1,261 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchCoursesByTenant } from "../../redux/super.admin.slice";
+import axios from "axios";
+import { toast } from "react-toastify";
+
 const AdminCourseManagement = () => {
- const dispatch = useDispatch();
- const { tenantDetails, coursesByTenant } = useSelector(
-  (state) => state.superAdmin
- );
- console.log("tenantDetails", tenantDetails);
- const [tenantId, setTenantId] = useState("");
- console.log(tenantId, "before");
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tenants, setTenants] = useState([]);
+  const [tenantId, setTenantId] = useState("");
+  const [searchValue, setSearchValue] = useState("");
+  const [filteredCourses, setFilteredCourses] = useState([]);
 
- // display all courses in a card fotmat based on the tenants
- const handleTenantChange = (e) => {
-  console.log(e.target.value, "clicked");
-  setTenantId(e.target.value);
-  dispatch(fetchCoursesByTenant(e.target.value));
- };
+  // Fetch all courses for super admin
+  const getAllCoursesForSuperAdmin = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/courses/superadmin/all-courses`,
+        {
+          withCredentials: true,
+        }
+      );
+      console.log(response.data, "response");
+      if (response.data.success) {
+        setCourses(response.data.data);
+        setFilteredCourses(response.data.data);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Error fetching courses");
+    } finally {
+      setLoading(false);
+    }
+  };
 
- return (
-  <main className="container-wrapper-scroll">
-   <section className="createcourse-wrapper ourcourse-page">
-    <div className="container-fluid">
-     <div className="row">
-      {/* <h4 className="text-2xl font-bold">
-       Courses by Each Tenant and Enrolled Users Count
-      </h4>
-      <div className="flex flex-col gap-4 my-2">
-       <select
-        className="border border-gray-300 rounded-md"
-        name=""
-        id=""
-        onChange={handleTenantChange}
-       >
-        <option className="text-gray-500" value="">
-         Select Tenant to view courses
-        </option>
-        {tenantDetails.map((tenant) => (
-         <option
-          key={tenant._id}
-          onChange={handleTenantChange}
-          className="text-gray-500 cursor-pointer"
-          value={tenant._id}
-         >
-          {tenant.name}
-         </option>
-        ))}
-       </select>
+  // Fetch tenants for filter dropdown
+  const fetchTenants = async () => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/superadmin/tenant`,
+        { withCredentials: true }
+      );
+      console.log(response, "tenants fetch");
+      if (response.data.success) {
+        setTenants(response.data.data);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Error fetching tenants");
+    }
+  };
+
+  // Filter courses by tenant
+  const filterCoursesByTenant = async (selectedTenantId) => {
+    try {
+      setLoading(true);
+      let url = `${
+        import.meta.env.VITE_API_URL
+      }/courses/superadmin/filtered-courses`;
+
+      const params = {};
+      if (selectedTenantId && selectedTenantId !== "") {
+        params.tenant_id = selectedTenantId;
+      }
+
+      const response = await axios.get(url, {
+        params,
+        withCredentials: true,
+      });
+
+      if (response.data.success) {
+        setCourses(response.data.data);
+        setFilteredCourses(response.data.data);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Error filtering courses by tenant");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Search courses
+  const searchCourses = async (searchTerm) => {
+    try {
+      setLoading(true);
+      let url = `${
+        import.meta.env.VITE_API_URL
+      }/courses/superadmin/search-courses/${searchTerm}`;
+
+      const params = {};
+      if (tenantId && tenantId !== "") {
+        params.tenant_id = tenantId;
+      }
+
+      const response = await axios.get(url, {
+        params,
+        withCredentials: true,
+      });
+
+      if (response.data.success) {
+        setFilteredCourses(response.data.data);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Error searching courses");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const debouncedSearch = useCallback(
+    (() => {
+      let timeoutId;
+      return (searchValue) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          if (searchValue.trim() === "") {
+            setFilteredCourses(courses);
+          } else {
+            searchCourses(searchValue);
+          }
+        }, 500);
+      };
+    })(),
+    [tenantId, courses]
+  );
+
+  // Handle tenant change
+  const handleTenantChange = (e) => {
+    const selectedTenantId = e.target.value;
+    setTenantId(selectedTenantId);
+
+    if (selectedTenantId === "") {
+      getAllCoursesForSuperAdmin();
+    } else {
+      filterCoursesByTenant(selectedTenantId);
+    }
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    const searchValue = e.target.value;
+    setSearchValue(searchValue);
+
+    if (searchValue === "") {
+      setFilteredCourses(courses);
+    } else {
+      debouncedSearch(searchValue);
+    }
+  };
+
+  useEffect(() => {
+    getAllCoursesForSuperAdmin();
+    fetchTenants();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">Loading...</div>
       </div>
-      <div className="d-flex flex-column gap-2 my-6 border-b border-gray-300 pb-4">
-       <h5 className="text-xl font-bold">
-        Total Courses: {coursesByTenant.length}
-       </h5>
-       <h5 className="text-xl font-bold">
-        Total Enrolled Students:{" "}
-        {coursesByTenant.reduce(
-         (acc, course) => acc + course.students.length,
-        0a
-        )}
-       </h5>
-      </div> */}
+    );
+  }
 
-      {coursesByTenant.length > 0 && tenantId !== ""
-       && (<div className="row">
-        <div className="col-xl-3 col-lg-3 col-sm-6">
-         <a href="#" className="ourcourse-item-div">
-          <div className="course-image">
-           <img src="img/chessthumbnail.jpg" alt="Chess" />
+  return (
+    <>
+      <main className="container-wrapper-scroll">
+        <section className="course-single-page container-height">
+          <div className="container-fluid">
+            <div className="row justify-content-between userlist-header">
+              <div className="col-lg-4 col-md-6">
+                <div className="row">
+                  <div className="col-lg-6 col-md-6 col-7">
+                    <h2>All Courses</h2>
+                  </div>
+                  <div className="col-lg-6 col-md-6 col-5">
+                    <select
+                      name=""
+                      id=""
+                      value={tenantId}
+                      onChange={handleTenantChange}
+                    >
+                      <option value="">Select Tenant</option>
+                      {tenants.map((tenant) => (
+                        <option value={tenant._id} key={tenant._id}>
+                          {tenant.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="col-lg-4 col-md-6">
+                <div className="row">
+                  <div className="col-lg-6 col-md-6 col-7">
+                    <input
+                      type="text"
+                      placeholder="Search courses..."
+                      value={searchValue}
+                      onChange={handleSearchChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="table-responsive table-styles mt-4">
+              <table className="table table-striped">
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Max Enrollment</th>
+                    <th scope="col">Tenant Name</th>
+                    <th scope="col">Language</th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCourses?.length > 0 ? (
+                    filteredCourses?.map((course, i) => (
+                      <tr key={course._id}>
+                        <th scope="row">{i + 1}</th>
+                        <td>{course.course_title || "N/A"}</td>
+                        <td>{course.category?.category || "N/A"}</td>
+                        <td>{course.max_enrollment || "N/A"}</td>
+                        <td>{course.tenant_id?.name || "N/A"}</td>
+                        <td>{course.language?.language || "N/A"}</td>
+                        <td>
+                          <span
+                            className={`px-2 py-1 border-xl text-sm ${
+                              course.is_active
+                                ? "bg-success text-white"
+                                : "bg-danger text-white"
+                            }`}
+                          >
+                            {course.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="text-center">
+                        No courses found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="course-content">
-           <h4>
-            <font>Tactic Ninja - Sharpen Your Chess Tactics with a Grandmaster</font>
-           </h4>
-           <h3>
-            <font><i className="fa-solid fa-indian-rupee-sign"></i>999</font><span><i
-             className="fa-solid fa-indian-rupee-sign"></i>399</span>
-           </h3>
-          </div>
-          <h6><i className="fa-regular fa-clock"></i> 20 total hours</h6>
-         </a>
-        </div>
-       </div>)}
-     </div>
-    </div>
-   </section>
-
-   <div>
-
-    {/* course card display */}
-    <div className="table-responsive table-styles mt-4">
-     <table className="table table-striped">
-      <thead>
-       <tr>
-        <th scope="col">#</th>
-        <th scope="col">Title</th>
-        <th scope="col">description</th>
-        <th scope="col">Price</th>
-        <th scope="col">Max enrollment</th>
-        <th scope="col">Actions</th>
-       </tr>
-      </thead>
-      <tbody>
-       {/* {JSON.parse(localStorage.getItem("st-courses")).map((course, i) => (
-        <tr key={i}>
-         <th scope="row">{i + 1}</th>
-         <td>{course.course_title}</td>
-         <td>{course.description}</td>
-         <td>{course.price}</td>
-         <td>{course.max_enrollment}</td>
-         <td>
-          <button
-           onClick={() => {
-            // setUserToEdit(user);
-            // setEditModalOpen(true);
-           }}
-           className="edit">
-           <i className="fa-solid fa-pen-to-square" />
-          </button>{" "}
-          <button
-           onClick={() => {
-            // setUserToDelete(user);
-            // setDeleteModalOpen(true);
-           }}
-           className="delete">
-           <i className="fa-solid fa-trash-can" />
-          </button>
-         </td>
-        </tr>
-       ))} */}
-      </tbody>
-     </table>
-    </div>
-
-   </div>
-  </main>
- );
+        </section>
+      </main>
+    </>
+  );
 };
 
 export default AdminCourseManagement;

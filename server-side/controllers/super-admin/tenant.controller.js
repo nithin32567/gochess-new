@@ -30,146 +30,6 @@ export const getCurrentTenant = async (req, res) => {
 
 // Create a new tenant
 
-export const createTenant = async (req, res) => {
-  console.log("working");
-
-  // Start a session for transaction
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { fname, lname, email, phone_number, subdomain } = req.body;
-    console.log("paylod", req.body);
-
-    const roleFind = await Role.findOne({ name: "tenant" });
-    const role_id = roleFind._id;
-    console.log("role_id--------------------------", role_id);
-    // Validation
-    if (!fname || !lname || !email || !phone_number || !subdomain) {
-      return res
-        .status(400)
-        .json({ success: false, message: "All fields are required" });
-    }
-
-    console.log("================ ======  ========================");
-    // Check for existing user
-    const existingUser = await Login.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "User with this email already exists",
-      });
-    }
-
-    // Check for existing tenant
-    const existingTenant = await Tenant.findOne({ subdomain });
-    if (existingTenant) {
-      return res.status(400).json({
-        success: false,
-        message: "Tenant with this subdomain already exists",
-      });
-    }
-
-    // find role
-
-    const roleId = await Role.findOne({ name: "tenant" });
-    console.log("roleId--------------------------", roleId);
-
-    // Generate password setup token
-    const passwordSetupToken = Crypto.randomBytes(32).toString("hex");
-    const tokenExpiry = Date.now() + 24 * 60 * 60 * 1000;
-
-    // Create tenant within transaction
-    const tenant = await Tenant.create(
-      [
-        {
-          name: `${fname} ${lname}`,
-          subdomain,
-          is_active: false,
-        },
-      ],
-      { session }
-    );
-
-    // Create user within transaction
-    const newUser = await User.create(
-      [
-        {
-          fname,
-          lname,
-          email,
-          phone_number,
-          tenant_id: tenant[0]._id,
-        },
-      ],
-      { session }
-    );
-
-    // Create login record within transaction
-    await Login.create(
-      [
-        {
-          email,
-          user_id: newUser[0]._id,
-          tenant_id: tenant[0]._id,
-          role_id,
-          passwordSetupToken,
-          tokenExpiry,
-          is_active: false,
-          tenant_id: tenant[0]._id,
-        },
-      ],
-      { session }
-    );
-    // console.log(newUser, "newUser");
-
-    // Prepare email
-    const setupLink = `${process.env.CORS_ORIGIN}/common/generate-password?token=${passwordSetupToken}`;
-
-    // Try to send email
-    try {
-      await sendMail({
-        to: email,
-        subject: "Welcome to LMS SaaS",
-        text: `Click this link to set your password: ${setupLink}`,
-      });
-    } catch (emailError) {
-      // console.log(emailError, "emailError");
-      // If email fails, abort the transaction
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(500).json({
-        success: false,
-        message: "Failed to send email. Tenant creation aborted.",
-        error: emailError.message,
-      });
-    }
-
-    // If everything is successful, commit the transaction
-    await session.commitTransaction();
-    session.endSession();
-
-    res.status(201).json({
-      success: true,
-      message: "Tenant created successfully. Email sent.",
-      data: tenant[0],
-    });
-  } catch (error) {
-    // Only abort transaction if it hasn't been committed yet
-    if (session.inTransaction()) {
-      await session.abortTransaction();
-    }
-    session.endSession();
-
-    console.error("Tenant creation error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error creating tenant",
-      error: error.message,
-    });
-  }
-};
-
 // // Get all tenants
 export const getAllTenants = async (req, res) => {
   console.log("getAllTenants");
@@ -180,8 +40,8 @@ export const getAllTenants = async (req, res) => {
     // For each tenant, get user and login info
     const detailedTenants = await Promise.all(
       tenants.map(async (tenant) => {
-        const user = await User.findOne({ tenant_id: tenant._id })
-        const login = await Login.findOne({ tenant_id: tenant._id })
+        const user = await User.findOne({ tenant_id: tenant._id });
+        const login = await Login.findOne({ tenant_id: tenant._id });
         const zoomapikey = await MeetingCredential.findOne({
           tenantId: tenant._id,
         });
@@ -356,6 +216,100 @@ export const updateStatus = async (req, res) => {
       message: "Status Updated",
     });
   } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+//=====================================================
+
+export const createTenant = async (req, res) => {
+  try {
+    const { fname, lname, name, subdomain, email, phone_number, plan } =
+      req.body;
+    const isUserExist = await Login.findOne({ email });
+    if (isUserExist) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists",
+      });
+    }
+    // validate phone number
+    if (!phone_number || phone_number.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number is required and must be 10 digits",
+      });
+    }
+
+    const tenant = await Tenant.create({ name, subdomain, is_active: false });
+    const roleId = await Role.findOne({ name: "tenant" });
+    const password = Crypto.randomBytes(16).toString("hex");
+    const user = await User.create({
+      fname,
+      lname,
+      phone_number,
+      email,
+      dob: new Date(),
+      age: 0,
+    });
+    const login = await Login.create({
+      user_id: user._id,
+      email,
+      password,
+      role_id: roleId._id,
+      tenant_id: tenant._id,
+    });
+
+    await Promise.all([user.save(), login.save(), tenant.save()]).then(
+      async () => {
+        try {
+          const htmlContent = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Welcome to GoChess LMS</h2>
+            <p>Hello ${name},</p>
+            <p>Your tenant account has been created successfully. Here are your temporary login credentials:</p>
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Temporary Password:</strong> ${password}</p>
+            </div>
+            <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p><strong>⚠️ Security Notice:</strong></p>
+              <ul>
+                <li>This is a temporary password for your first login</li>
+                <li>You will be required to change your password immediately after login</li>
+                <li>Do not share these credentials with anyone</li>
+              </ul>
+            </div>
+            <p>Best regards,<br>GoChess LMS Team</p>
+          </div>
+        `;
+
+          await sendMail({
+            to: email,
+            subject:
+              "Welcome to GoChess LMS - Your Temporary Account Credentials",
+            text: `Welcome to GoChess LMS! Your tenant account has been created. Email: ${email}, Temporary Password: ${password}. You must change your password after first login for security.`,
+            html: htmlContent,
+          });
+
+          res.status(200).json({
+            success: true,
+            message: "Tenant created successfully and welcome email sent",
+          });
+        } catch (emailError) {
+          console.error("Email sending failed:", emailError);
+          res.status(200).json({
+            success: true,
+            message: "Tenant created successfully but email sending failed",
+          });
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Create tenant error:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",

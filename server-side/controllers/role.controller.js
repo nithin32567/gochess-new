@@ -15,19 +15,50 @@ export const createRole = async (req, res) => {
       });
     }
 
+    // Convert permission keys to ObjectIds if permissions are provided
+    let permissionIds = [];
+    if (permissions && permissions.length > 0) {
+      // Check if permissions are already ObjectIds or permission keys
+      const isObjectId = permissions[0] && typeof permissions[0] === 'string' && permissions[0].length === 24;
+      
+      if (isObjectId) {
+        // If they're already ObjectIds, use them directly
+        permissionIds = permissions;
+      } else {
+        // If they're permission keys, look them up in the database
+        const permissionDocs = await Permission.find({
+          name: { $in: permissions },
+          is_active: true
+        });
+        
+        if (permissionDocs.length !== permissions.length) {
+          return res.status(400).json({
+            success: false,
+            message: "One or more permissions are invalid or inactive",
+          });
+        }
+        
+        permissionIds = permissionDocs.map(permission => permission._id);
+      }
+    }
+
     // Create new role
     const role = await Role.create({
       name,
       description,
-      permissions: permissions || [],
+      permissions: permissionIds,
     });
+
+    // Populate permissions for response
+    const populatedRole = await Role.findById(role._id).populate("permissions");
 
     return res.status(201).json({
       success: true,
-      data: role,
+      data: populatedRole,
       message: "Role created successfully",
     });
   } catch (error) {
+    console.error("Create role error:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "Error creating role",
@@ -104,6 +135,37 @@ export const updateRole = async (req, res) => {
       }
     }
 
+    // Convert permission keys to ObjectIds if permissions are provided
+    let permissionIds = role.permissions; // Keep existing permissions by default
+    if (permissions !== undefined) {
+      if (permissions.length === 0) {
+        permissionIds = [];
+      } else {
+        // Check if permissions are already ObjectIds or permission keys
+        const isObjectId = permissions[0] && typeof permissions[0] === 'string' && permissions[0].length === 24;
+        
+        if (isObjectId) {
+          // If they're already ObjectIds, use them directly
+          permissionIds = permissions;
+        } else {
+          // If they're permission keys, look them up in the database
+          const permissionDocs = await Permission.find({
+            name: { $in: permissions },
+            is_active: true
+          });
+          
+          if (permissionDocs.length !== permissions.length) {
+            return res.status(400).json({
+              success: false,
+              message: "One or more permissions are invalid or inactive",
+            });
+          }
+          
+          permissionIds = permissionDocs.map(permission => permission._id);
+        }
+      }
+    }
+
     // Update role
     const updatedRole = await Role.findByIdAndUpdate(
       roleId,
@@ -111,7 +173,7 @@ export const updateRole = async (req, res) => {
         $set: {
           name: name || role.name,
           description: description || role.description,
-          permissions: permissions || role.permissions,
+          permissions: permissionIds,
         },
       },
       { new: true }
@@ -123,6 +185,7 @@ export const updateRole = async (req, res) => {
       message: "Role updated successfully",
     });
   } catch (error) {
+    console.error("Update role error:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "Error updating role",
@@ -237,6 +300,38 @@ export const getRoleByName = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || "Error fetching role",
+    });
+  }
+};
+
+// Get permissions by keys (useful for frontend)
+export const getPermissionsByKeys = async (req, res) => {
+  try {
+    const { keys } = req.query;
+    
+    if (!keys) {
+      return res.status(400).json({
+        success: false,
+        message: "Permission keys are required",
+      });
+    }
+
+    const permissionKeys = keys.split(',');
+    const permissions = await Permission.find({
+      name: { $in: permissionKeys },
+      is_active: true
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: permissions,
+      message: "Permissions fetched successfully",
+    });
+  } catch (error) {
+    console.error("Get permissions by keys error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error fetching permissions",
     });
   }
 };

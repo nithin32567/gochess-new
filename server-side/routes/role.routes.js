@@ -7,9 +7,12 @@ import {
   deleteRole,
   assignPermissionsToRole,
   getRoleByName,
+  getPermissionsByKeys,
 } from "../controllers/role.controller.js";
 import { isSuperAdmin } from "../middleware/isSuperAdmin.js";
 import { tenantMiddleware } from "../middleware/tenant.middleware.js";
+import { authCheckMiddleware } from "../middleware/authCheckMiddleware.js";
+import { authorizeRoles } from "../middleware/authorizeRoles.js";
 
 const router = Router();
 
@@ -19,8 +22,11 @@ const router = Router();
 // Role routes
 router
   .route("/")
-  .post(tenantMiddleware, createRole)
-  .get(tenantMiddleware, getAllRoles);
+  .post(authCheckMiddleware,authorizeRoles("superadmin"), createRole)
+  .get(authCheckMiddleware,authorizeRoles("superadmin", "tenant"), getAllRoles);
+
+// Get permissions by keys
+router.get("/permissions/by-keys", authCheckMiddleware, authorizeRoles("superadmin"), getPermissionsByKeys);
 
 router.route("/:roleId").get(getRoleById).patch(updateRole);
 

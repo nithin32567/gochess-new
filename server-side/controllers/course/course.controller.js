@@ -958,8 +958,9 @@ export async function getCourseDataById(req, res) {
     // 3. For each module, fetch lessons and populate lesson_type_id
     const modulesWithLessons = await Promise.all(
       modules.map(async (module) => {
-        const lessons = await Lesson.find({ module_id: module._id })
-          .populate("lesson_type_id");
+        const lessons = await Lesson.find({ module_id: module._id }).populate(
+          "lesson_type_id"
+        );
         return {
           ...module.toObject(),
           lessons,
@@ -985,3 +986,112 @@ export async function getCourseDataById(req, res) {
     });
   }
 }
+
+// updated controllers================================================
+
+
+export const getAllCoursesForSuperAdmin = async (req, res) => {
+  try {
+    // const { tenant_id } = req.user;
+
+    const courses = await Course.find({}).populate("category", "category")
+      .populate("subcategory", "subcategory_name")
+      .populate("language", "language")
+      .populate("level", "course_level")
+      .populate("instructors", "fname lname email _id")
+      .populate("tenant_id", "name");
+
+    return res.status(200).json({
+      success: true,
+      data: courses,
+    });
+  } catch (error) {
+    console.error("Error in getAllCoursesForSuperAdmin:", error);
+  }
+};
+
+export const filteredCoursesForSuperAdmin = async (req, res) => {
+  try {
+    const { tenant_id } = req.query;
+    const { search } = req.query;
+    
+    let query = {};
+    
+    // Filter by tenant if provided
+    if (tenant_id) {
+      query.tenant_id = tenant_id;
+    }
+    
+    // Search functionality
+    if (search) {
+      query.$or = [
+        { course_title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { short_description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const courses = await Course.find(query)
+      .populate("category", "category")
+      .populate("subcategory", "subcategory_name")
+      .populate("language", "language")
+      .populate("level", "course_level")
+      .populate("instructors", "fname lname email _id")
+      .populate("tenant_id", "name");
+
+    return res.status(200).json({
+      success: true,
+      data: courses,
+    });
+  } catch (error) {
+    console.error("Error in filteredCoursesForSuperAdmin:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while filtering courses",
+      error: error.message,
+    });
+  }
+};
+
+export const searchCoursesForSuperAdmin = async (req, res) => {
+  try {
+    const { searchValue } = req.params;
+    const { tenant_id } = req.query;
+    
+    let query = {};
+    
+    // Filter by tenant if provided
+    if (tenant_id) {
+      query.tenant_id = tenant_id;
+    }
+    
+    // Search functionality
+    if (searchValue) {
+      query.$or = [
+        { course_title: { $regex: searchValue, $options: 'i' } },
+        { description: { $regex: searchValue, $options: 'i' } },
+        { short_description: { $regex: searchValue, $options: 'i' } }
+      ];
+    }
+
+    const courses = await Course.find(query)
+      .populate("category", "category")
+      .populate("subcategory", "subcategory_name")
+      .populate("language", "language")
+      .populate("level", "course_level")
+      .populate("instructors", "fname lname email _id")
+      .populate("tenant_id", "name");
+
+    return res.status(200).json({
+      success: true,
+      data: courses,
+    });
+  } catch (error) {
+    console.error("Error in searchCoursesForSuperAdmin:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while searching courses",
+      error: error.message,
+    });
+  }
+};

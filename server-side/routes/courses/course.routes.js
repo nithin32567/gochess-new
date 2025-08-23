@@ -11,13 +11,13 @@ router
   .route("/")
   .post(
     authCheckMiddleware,
-    authorizeRoles("tenant"),
+    authorizeRoles("tenant "),
     uploadCourseImage.single("file"),
     CourseController.createCourse
   )
   .get(
     authCheckMiddleware,
-    authorizeRoles("tenant"),
+    authorizeRoles("tenant", "superadmin"),
     CourseController.getAllCourses
   );
 
@@ -134,5 +134,28 @@ router.get(
   authorizeRoles("tenant"),
   CourseController.searchCourses
 );
+
+router.get(
+  "/superadmin/all-courses",
+  authCheckMiddleware,
+  authorizeRoles("superadmin"),
+  CourseController.getAllCoursesForSuperAdmin
+);
+
+router.get(
+  "/superadmin/filtered-courses",
+  authCheckMiddleware,
+  authorizeRoles("superadmin"),
+  CourseController.filteredCoursesForSuperAdmin
+);
+
+router.get(
+  "/superadmin/search-courses/:searchValue",
+  authCheckMiddleware,
+  authorizeRoles("superadmin"),
+  CourseController.searchCoursesForSuperAdmin
+);
+
+
 
 export default router;
