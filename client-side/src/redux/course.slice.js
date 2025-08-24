@@ -64,7 +64,7 @@ export const fetchSubcategories = createAsyncThunk(
         withCredentials: true,
       }
     );
-      console.log(response.data.data, 'subcatedory slivce')
+    console.log(response.data.data, 'subcatedory slivce')
     return response.data.data;
   }
 );

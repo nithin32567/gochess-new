@@ -65,15 +65,7 @@ export const createCourse = async (req, res) => {
       });
     }
 
-    // Check if file was uploaded
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "Course image is required.",
-      });
-    }
 
-    // Check if course title is unique
     const existingCourse = await Course.findOne({
       course_title,
       tenant_id,
@@ -101,7 +93,7 @@ export const createCourse = async (req, res) => {
       start_date,
       end_date,
       drip_content_enabled: drip_content_enabled || false,
-      image: req.file.filename || null,
+      image: req.file?.filename || null,
     });
 
     await course.save();
@@ -475,9 +467,8 @@ export const toggleCourseActiveStatus = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: `Course has been successfully ${
-        isActive ? "activated" : "deactivated"
-      }.`,
+      message: `Course has been successfully ${isActive ? "activated" : "deactivated"
+        }.`,
       data: course,
     });
   } catch (error) {
@@ -594,9 +585,8 @@ export const toggleArchiveStatus = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: `Course has been successfully ${
-        archive ? "archived" : "unarchived"
-      }.`,
+      message: `Course has been successfully ${archive ? "archived" : "unarchived"
+        }.`,
       data: course,
     });
   } catch (error) {
@@ -613,67 +603,19 @@ export const getAllCourses = async (req, res) => {
   try {
     const { tenant_id } = req.user;
     const { limit = 10, page = 1 } = req.query;
+    const { search } = req.query
 
-    // Validate pagination parameters
-    const limitNum = parseInt(limit);
-    const pageNum = parseInt(page);
+    const courses = await Course.find({ tenant_id }).populate("category", "category").populate("subcategory", "subcategory_name").populate("language", "language").populate("level", "course_level");
 
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-      return res.status(400).json({
-        success: false,
-        message: "Limit must be a number between 1 and 100",
-      });
-    }
-
-    if (isNaN(pageNum) || pageNum < 1) {
-      return res.status(400).json({
-        success: false,
-        message: "Page must be a positive number",
-      });
-    }
-
-    if (!tenant_id) {
-      return res.status(400).json({
-        success: false,
-        message: "Tenant ID is required",
-      });
-    }
-
-    // Calculate skip value
-    const skip = (pageNum - 1) * limitNum;
-
-    // Get total count for pagination
-    const totalCourses = await Course.countDocuments({ tenant_id });
-    const totalPages = Math.ceil(totalCourses / limitNum);
-
-    const courses = await Course.find({ tenant_id })
-      .limit(limitNum)
-      .skip(skip)
-      .populate("category")
-      .populate("subcategory", "subcategory_name")
-      .populate("language")
-      .populate("level")
-      .populate("instructors")
-      .sort({ createdAt: -1 });
-
-    console.log(
-      courses,
-      "courses[0].instructors =============================================================="
-    );
+    console.log(courses, "courses")
     return res.status(200).json({
       success: true,
+      message: "Courses fetched successfully",
       data: courses,
-      pagination: {
-        currentPage: pageNum,
-        totalPages,
-        totalCourses,
-        limit: limitNum,
-        hasNextPage: pageNum < totalPages,
-        hasPrevPage: pageNum > 1,
-      },
-    });
+    })
+
   } catch (error) {
-    console.error("Error fetching courses:", error);
+    console.log(error)
     return res.status(500).json({
       success: false,
       message: "An error occurred while fetching courses",
@@ -1014,14 +956,14 @@ export const filteredCoursesForSuperAdmin = async (req, res) => {
   try {
     const { tenant_id } = req.query;
     const { search } = req.query;
-    
+
     let query = {};
-    
+
     // Filter by tenant if provided
     if (tenant_id) {
       query.tenant_id = tenant_id;
     }
-    
+
     // Search functionality
     if (search) {
       query.$or = [
@@ -1057,14 +999,14 @@ export const searchCoursesForSuperAdmin = async (req, res) => {
   try {
     const { searchValue } = req.params;
     const { tenant_id } = req.query;
-    
+
     let query = {};
-    
+
     // Filter by tenant if provided
     if (tenant_id) {
       query.tenant_id = tenant_id;
     }
-    
+
     // Search functionality
     if (searchValue) {
       query.$or = [

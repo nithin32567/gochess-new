@@ -27,10 +27,17 @@ export const updateUser = createAsyncThunk(
 );
 
 
+export const getCurrentUser = createAsyncThunk("user/getCurrentUser", async () => {
+  const response = await axios.get(`${import.meta.env.VITE_API_URL}/auth/getcurrentuser/me`, {
+    withCredentials: true,
+  })
+  return response.data
+});
+
 const userSlice = createSlice({
   name: "user",
   initialState: {
-    user: null,
+    user: JSON.parse(localStorage.getItem("user")) || null,
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -42,6 +49,10 @@ const userSlice = createSlice({
       // After successful update, we'll refetch the data
       // The component will handle the refetch
       state.user = action.payload
+    });
+    builder.addCase(getCurrentUser.fulfilled, (state, action) => {
+      state.user = action.payload.user
+      localStorage.setItem("user", JSON.stringify(action.payload.user))
     });
   }
 })

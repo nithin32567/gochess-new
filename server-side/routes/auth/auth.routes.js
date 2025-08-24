@@ -4,6 +4,8 @@ import {
   resendMail,
 } from "../../controllers/auth.controller.js";
 import { authCheckMiddleware } from "../../middleware/authCheckMiddleware.js";
+import { getCurrentUser } from "../../controllers/auth/userAuth.controlller.js";
+import { authorizeRoles } from "../../middleware/authorizeRoles.js";
 
 const router = express.Router();
 
@@ -19,10 +21,12 @@ router.post("/logout", async (req, res) => {
   }
 });
 
-router.get("/check-auth", authCheckMiddleware, (req, res) => {
-  const { user } = req;
-  console.log(user, "user");
-  res.status(200).json({ success: true, user });
-});
+router.get("/getcurrentuser/me", authCheckMiddleware, getCurrentUser);
+
+// router.get("/check-auth", authCheckMiddleware, (req, res) => {
+//   const { user } = req;
+//   console.log(user, "user");
+//   res.status(200).json({ success: true, user });
+// });
 
 export default router;

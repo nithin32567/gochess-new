@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
 export const fetchTenant = createAsyncThunk("tenant/fetchTenant", async () => {
-  const response = await axios.get(`${import.meta.env.VITE_API_URL}/tenant`, {
+  const response = await axios.get(`${import.meta.env.VITE_API_URL}/tenants`, {
     withCredentials: true,
   });
   return response.data;
@@ -40,6 +40,7 @@ export const fetchInstructors = createAsyncThunk(
 export const createInstructor = createAsyncThunk(
   "tenant/createInstructor",
   async (instructor) => {
+    console.log(instructor, "instructor ,slice");
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/users`,

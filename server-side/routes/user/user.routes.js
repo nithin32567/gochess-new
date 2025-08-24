@@ -3,9 +3,9 @@ import {
   createUser,
   getAllUsers,
   getUserById,
-    updateUser,
+  updateUser,
   deleteUser,
-  getUsersByTenant, 
+  getUsersByTenant,
   searchUsers,
   toggleUserStatus,
   searchUsersSuperadmin,
@@ -23,7 +23,7 @@ router
   .route("/")
   .get(authCheckMiddleware, authorizeRoles("superadmin"), getAllUsers)
 
-  .post(authCheckMiddleware, authorizeRoles("superadmin"), createUser);
+  .post(authCheckMiddleware, authorizeRoles("superadmin", "tenant"), createUser);
 
 router
   .route("/tenant/:tenant_id")

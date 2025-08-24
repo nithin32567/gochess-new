@@ -24,6 +24,7 @@ function TenantCourses() {
   const { categories, levels, subcategories, languages } = useSelector((state) => state.course);
 
 
+
   // const { courses, categories } = useSelector((state) => state.course);
   // console.log(courses, "courses");
 
@@ -158,68 +159,13 @@ function TenantCourses() {
             </div>
           </div>
         </section>
+        {
+          isAddCourseModalOpen && <AddCourseModal setIsAddCourseModalOpen={setIsAddCourseModalOpen} />
+        }
 
       </main >
 
 
-      <div className="w-full px-12 py-12 flex flex-col gap-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Courses</h1>
-          <button
-            onClick={() => setIsAddCourseModalOpen(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
-          >
-            Add Course
-          </button>
-        </div>
-
-        {/* Search and Filter Section */}
-        <div className="flex gap-4">
-          <input
-            type="text"
-            placeholder="Search courses..."
-            className="px-4 py-2 border rounded-md flex-1"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-          />
-          <select
-            className="px-4 py-2 border rounded-md"
-          // onChange={(e) => dispatch(filterCoursesByCategory(e.target.value))}
-          >
-            <option value="all">All Categories</option>
-            {categories &&
-              categories.map((category, index) => (
-                <option key={index} value={category._id}>
-                  {category.category}
-                </option>
-              ))}
-          </select>
-          <select className="px-4 py-2 border rounded-md">
-            <option value="">All Levels</option>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-          </select>
-        </div>
-
-        {/* Courses Grid */}
-        <div className=" w-full row">
-          {courses &&
-            courses?.map((course, index) => (
-              <CourseCard key={index} course={course} />
-            ))}
-        </div>
-        {isAddCourseModalOpen && (
-          <Popup>
-            <AddCourseModal
-              categories={categories}
-              subcategories={subcategories}
-              levels={levels}
-              languages={languages}
-              setIsAddCourseModalOpen={setIsAddCourseModalOpen} />
-          </Popup>
-        )}
-      </div>
     </>
   );
 };

@@ -156,7 +156,7 @@ const CourseCard = ({ course }) => {
     }} className="container-fluid w-full">
       <div className="object-fit-cover">
         <a href="#" className="ourcourse-item-div">
-          <div className="course-image"><img src={course?.image} alt="Chess" /></div>
+          <div className="course-image"><img src={course?.image || "https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"} alt="Chess" /></div>
           <div className="course-content align-items-center">
             <h4>
               <font>{course_title}</font>

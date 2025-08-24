@@ -8,7 +8,7 @@ function UserLogin() {
   // login the user and get the current user details store in the user slice
 
   const [signinData, setSigninData] = useState({
-    email: "",                                                                                                                                                                                                                                                                                                  
+    email: "",
     password: "",
   });
   const API_URL = import.meta.env.VITE_API_URL;
@@ -25,50 +25,32 @@ function UserLogin() {
       const response = await axios.post(`${API_URL}/users/login`, signinData, {
         withCredentials: true,
       });
-
-      console.log(response.data, "response.data");
-      setLoading(false);
-      const { user, message } = response.data || {};
+      if (response.status === 200) {
+        toast.success(response.data.message);
+      }
+      const { user } = response.data || {};
       console.log(user);
 
-      // Show success toast
-      toast.success(message || "Login successful!", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-
-      // localStorage.setItem("user-email", signinData.email);
-
-      // Navigate based on user role
-      if (user.role.toLowerCase() === "student") {
-        navigate("/student");
-      } else if (user.role.toLowerCase() === "instructor") {
-        navigate("/instructor");
-      } else if (
-        user.role.toLowerCase() === "tenantadmin" ||
-        user.role.toLowerCase() === "tenant"
-      ) {
-        navigate("/tenant");
+      if (user?.role_id?.name) {
+        if (user.role_id.name.toLowerCase() === "student") {
+          navigate("/student");
+        } else if (user.role_id.name.toLowerCase() === "instructor") {
+          navigate("/instructor");
+        } else if (user.role_id.name.toLowerCase() === "tenantadmin" || user.role_id.name.toLowerCase() === "tenant") {
+          navigate("/tenant");
+        }
+      }
+      else {
+        toast.error("User not found!!! Please contact admin");
       }
     } catch (error) {
+      toast.error(error.response?.data?.message ?? "Login failed")
       setLoading(false);
       console.log("error", error);
       const errorMessage = error.response?.data?.message ?? "Login failed";
       setError(errorMessage);
 
-      // Show error toast
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+
     }
   };
 

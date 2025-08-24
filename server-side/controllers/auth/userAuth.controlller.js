@@ -6,7 +6,7 @@ export const loginUser = async (req, res) => {
   console.log("loginUser");
   try {
     const { email, password } = req.body;
-    const user = await Login.findOne({ email });
+    const user = await Login.findOne({ email }).populate("role_id", "name").populate("tenant_id", "name");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -14,10 +14,16 @@ export const loginUser = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user._id, role: user.role_id.name, tenant_id: user.tenant_id._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
     console.log(token);
+
+    const userData = await Login.findById(user._id).select("-password")
+      .populate("user_id", "fname lname age dob email phone_number")
+      .populate("role_id", "name description")
+      .populate("tenant_id", "name");
+
 
     res.cookie("token", token, {
       httpOnly: true,
@@ -25,24 +31,22 @@ export const loginUser = async (req, res) => {
       maxAge: 1 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({ message: "Login successful" });
+    res.status(200).json({ message: "Login successful", user: userData });
   } catch (error) {
     res.status(500).send({ error });
   }
 };
 export const getCurrentUser = async (req, res) => {
-  console.log("get usersss");
-  console.log("user", req.user);
-  const { id } = req.user;
-  const user = await Login.findById(id)
-    .select("-password")
-    .populate("user_id", "fname lname age dob email phone_number")
-    .populate("role_id", "name description")
-    .populate("tenant_id", "name");
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-  console.log(user);
+  try {
+    const { user } = req;
+    console.log(user, "user====================================");
+    const userData = await Login.findById(user.id).select("-password")
+      .populate("user_id", "fname lname age dob email phone_number")
+      .populate("role_id", "name description")
+      .populate("tenant_id", "name");
+    res.status(200).json({ user: userData });
 
-  res.status(200).json({ user });
+  } catch (error) {
+    console.log(error)
+  }
 };

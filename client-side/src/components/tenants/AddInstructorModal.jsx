@@ -12,11 +12,13 @@ const AddInstructorModal = ({
     fname: "",
     lname: "",
     age: "",
+
     dob: "",
     phone_number: "",
     email: "",
     role_id: instructorRoleId,
   });
+  console.log(formData, "formData");
   console.log(instructorRoleId, "instructorRoleId");
   // const api_url = import.meta.env.VITE_API_URL;
   const handleChange = (e) => {
@@ -29,12 +31,12 @@ const AddInstructorModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!instructorRoleId) {
       toast.error("Instructor role not loaded. Please try again.");
       return;
     }
-    
+
     formData.role_id = instructorRoleId;
 
     console.log("Submitting form data:", formData);
@@ -42,7 +44,7 @@ const AddInstructorModal = ({
     console.log("Full result:", result);
     console.log("Result meta:", result.meta);
     console.log("Result payload:", result.payload);
-    
+
     if (result.meta.requestStatus === 'fulfilled' && result.payload.success) {
       setOpenAddInstructorModal(false);
       toast.success("Instructor added successfully");

@@ -1,9 +1,9 @@
 import React from "react";
 import {
- BrowserRouter as Router,
- Routes,
- Route,
- Navigate,
+    BrowserRouter as Router,
+    Routes,
+    Route,
+    Navigate,
 } from "react-router-dom";
 import Signin from "./pages/auth/Signin";
 import Layout from "./pages/superadmin/Layout";
@@ -40,84 +40,84 @@ import InstructorStudents from "./pages/Instructor/InstructorStudents";
 import { ToastContainer } from "react-toastify";
 
 function App() {
- return (
-  <Router>
-   <ToastContainer />
-   <Routes>
-    {/* Public Route */}
-    <Route path="/" element={<h1>Hello World</h1>} />
+    return (
+        <Router>
+            <ToastContainer />
+            <Routes>
+                {/* Public Route */}
+                <Route path="/" element={<h1>Hello World</h1>} />
 
-    {/* Superadmin Auth */}
-    <Route path="/superadmin/auth" element={<Signin />} />
+                {/* Superadmin Auth */}
+                <Route path="/superadmin/auth" element={<Signin />} />
 
-    {/* Protected Superadmin Routes */}
-    <Route
-     path="/superadmin"
-     element={
-      <ProtectedRoute>
-       <Layout />
-      </ProtectedRoute>
-     }
-    >
-     <Route
-      index
-      element={<Navigate to="/superadmin/dashboard" replace />}
-     />
-     <Route path="dashboard" element={<Dashboard />} />
-     <Route path="tenants" element={<TenantsManagement />} />
-     <Route path="users" element={<UserList />} />
-     <Route path="users/create" element={<UserManagement />} />
-     <Route path="roles" element={<RolesList />} />
-     <Route path="roles/create" element={<RoleForm />} />
-     <Route path="roles/:roleId" element={<RoleForm />} />
-     <Route path="courses" element={<AdminCourseManagement />} />
-     <Route path="settings" element={<Settings />} />
-    </Route>
+                {/* Protected Superadmin Routes */}
+                <Route
+                    path="/superadmin"
+                    element={
+                        <ProtectedRoute>
+                            <Layout />
+                        </ProtectedRoute>
+                    }
+                >
+                    <Route
+                        index
+                        element={<Navigate to="/superadmin/dashboard" replace />}
+                    />
+                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="tenants" element={<TenantsManagement />} />
+                    <Route path="users" element={<UserList />} />
+                    <Route path="users/create" element={<UserManagement />} />
+                    <Route path="roles" element={<RolesList />} />
+                    <Route path="roles/create" element={<RoleForm />} />
+                    <Route path="roles/:roleId" element={<RoleForm />} />
+                    <Route path="courses" element={<AdminCourseManagement />} />
+                    <Route path="settings" element={<Settings />} />
+                </Route>
 
-    {/* Tenant Routes */}
-    <Route path="/tenant" element={<DashboardLayout />}>
-     <Route index element={<TenentDashBoard />} />
-     <Route path="meetings" element={<TenantMeetings />} />
-     <Route path="instructors" element={<TenantInstructor />} />
-     <Route path="courses" element={<TenantCourses />} />
-     <Route path="students" element={<ListStudents />} />
-     {/* <Route path="create-module" element={<Lessons />} /> */}
-     <Route path="settings" element={<TenantSettings />} />
-     <Route
-      path="view-course-details/:id"
-      element={<ViewCourseDetails />}
-     />
-    </Route>
+                {/* Tenant Routes */}
+                <Route path="/tenant" element={<DashboardLayout />}>
+                    <Route index element={<TenentDashBoard />} />
+                    <Route path="meetings" element={<TenantMeetings />} />
+                    <Route path="instructors" element={<TenantInstructor />} />
+                    <Route path="courses" element={<TenantCourses />} />
+                    <Route path="students" element={<ListStudents />} />
+                    {/* <Route path="create-module" element={<Lessons />} /> */}
+                    <Route path="settings" element={<TenantSettings />} />
+                    <Route
+                        path="view-course-details/:id"
+                        element={<ViewCourseDetails />}
+                    />
+                </Route>
 
-    {/* Tenant Auth (outside of dashboard layout) */}
+                {/* Tenant Auth (outside of dashboard layout) */}
 
-    {/* Common Route */}
-    <Route
-     path="/common/generate-password"
-     element={<GeneratePassword />}
-    />
-    <Route path="/users/login" element={<UserLogin />} />
+                {/* Common Route */}
+                <Route
+                    path="/common/generate-password"
+                    element={<GeneratePassword />}
+                />
+                <Route path="/users/login" element={<UserLogin />} />
 
-    {/* Student Routes */}
-    <Route path="/student" element={<StudentLayout />}>
-     <Route index element={<StudentDashboard />} />
-     <Route path="course/:id" element={<CourseDetails />} />
+                {/* Student Routes */}
+                <Route path="/student" element={<StudentLayout />}>
+                    <Route index element={<StudentDashboard />} />
+                    <Route path="course/:id" element={<CourseDetails />} />
 
-     {/* <Route path="courses" element={<StudentCourses />} />
+                    {/* <Route path="courses" element={<StudentCourses />} />
      <Route path="lessons" element={<StudentLessons />} />
      <Route path="quizzes" element={<StudentQuizzes />} /> */}
 
-    </Route>
+                </Route>
 
-    {/* Instructor Routes */}
-    <Route path="/instructor" element={<InstructorLayout />}>
-     <Route index element={<InstructorDashboard />} />
-     <Route path="instructor_courses" element={<ViewCourseInstructor />} />
-     <Route path="instructor-view-students" element={<InstructorStudents />} />
-    </Route>
-   </Routes>
-  </Router>
- );
+                {/* Instructor Routes */}
+                <Route path="/instructor" element={<InstructorLayout />}>
+                    <Route index element={<InstructorDashboard />} />
+                    <Route path="instructor_courses" element={<ViewCourseInstructor />} />
+                    <Route path="instructor-view-students" element={<InstructorStudents />} />
+                </Route>
+            </Routes>
+        </Router>
+    );
 }
 
 export default App;

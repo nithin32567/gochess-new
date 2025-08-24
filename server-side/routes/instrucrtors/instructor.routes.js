@@ -7,7 +7,7 @@ import {
   getInstructorAndDetailsById,
 } from "../../controllers/instructor/course.controller.js";
 import { instructorMiddleware } from "../../middleware/instructor.middleware.js";
-import { assignCoursesToInstructor,getCourseDataById } from "../../controllers/course/course.controller.js";
+import { assignCoursesToInstructor, getCourseDataById } from "../../controllers/course/course.controller.js";
 import {
   getStudentsByTenant,
   createStudent,
@@ -37,6 +37,6 @@ router.post(
   assignCoursesToInstructor
 );
 // router.get("/getcoursedatabyid/asd/:id",getCourseDataById)
-router.get("/getcoursedatabyid/asd/:id",authCheckMiddleware,getCourseDataById)
+router.get("/getcoursedatabyid/asd/:id", authCheckMiddleware, getCourseDataById)
 // router.get("/getcoursedatabyid/asd/:id",getCourseDataById)
 export default router;

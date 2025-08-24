@@ -11,7 +11,7 @@ router
   .route("/")
   .post(
     authCheckMiddleware,
-    authorizeRoles("tenant "),
+    authorizeRoles("tenant"),
     uploadCourseImage.single("file"),
     CourseController.createCourse
   )

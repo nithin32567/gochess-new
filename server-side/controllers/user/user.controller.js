@@ -549,13 +549,13 @@ export const toggleUserStatus = async (req, res) => {
 export async function requestPasswordReset(req, res) {
   console.log("inside requestresetpassword", req.body);
   const { email } = req.body;
-  
+
   try {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
     const login = await Login.findOne({ user_id: user._id });
     if (!login) {
       return res.status(404).json({ message: "Login not found" });
@@ -563,7 +563,7 @@ export async function requestPasswordReset(req, res) {
 
     // Generate a secure reset token that expires in 1 hour
     const resetToken = jwt.sign(
-      { 
+      {
         userId: user._id,
         email: email,
         type: 'password_reset'
@@ -608,15 +608,15 @@ export async function requestPasswordReset(req, res) {
       html: htmlContent
     });
 
-    res.status(200).json({ 
+    res.status(200).json({
       success: true,
-      message: "Password reset email sent successfully" 
+      message: "Password reset email sent successfully"
     });
   } catch (error) {
     console.error("Error sending password reset email:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Error sending password reset email" 
+      message: "Error sending password reset email"
     });
   }
 }
@@ -624,15 +624,15 @@ export async function requestPasswordReset(req, res) {
 // New function to reset password using token
 export async function resetPassword(req, res) {
   const { token, newPassword } = req.body;
-  
+
   try {
     // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     if (decoded.type !== 'password_reset') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Invalid token type" 
+        message: "Invalid token type"
       });
     }
 
@@ -643,9 +643,9 @@ export async function resetPassword(req, res) {
     });
 
     if (!login) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Invalid or expired reset token" 
+        message: "Invalid or expired reset token"
       });
     }
 
@@ -659,27 +659,27 @@ export async function resetPassword(req, res) {
       password_reset_expires: null
     });
 
-    res.status(200).json({ 
+    res.status(200).json({
       success: true,
-      message: "Password reset successfully" 
+      message: "Password reset successfully"
     });
   } catch (error) {
     console.error("Error resetting password:", error);
     if (error.name === 'JsonWebTokenError') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Invalid token" 
+        message: "Invalid token"
       });
     }
     if (error.name === 'TokenExpiredError') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Token has expired" 
+        message: "Token has expired"
       });
     }
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Error resetting password" 
+      message: "Error resetting password"
     });
   }
 }
@@ -786,6 +786,7 @@ export const createUser = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   console.log(req.user, "req.user");
+  const tenant_id = req.user.tenant_id
 
   try {
     const {
@@ -799,13 +800,11 @@ export const createUser = async (req, res) => {
       email,
       // password,
       role_id,
-      tenant_id,
     } = req.body;
 
-    console.log(tenant_id, "tenant_id=======================");
 
     // Validate required fields
-    if (!fname || !lname || !email || !role_id || !tenant_id) {
+    if (!fname || !lname || !email || !role_id) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields",
@@ -820,12 +819,7 @@ export const createUser = async (req, res) => {
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(tenant_id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid tenant ID format",
-      });
-    }
+
 
     // Verify role and tenant exist
     const role = await Role.findById(role_id);
@@ -836,19 +830,12 @@ export const createUser = async (req, res) => {
       });
     }
 
-    const tenant = await Tenant.findById(tenant_id);
-    if (!tenant) {
-      return res.status(400).json({
-        success: false,
-        message: "Tenant not found",
-      });
-    }
     // console.log();
 
     // Check if email already exists for the tenant
     const existingLogin = await Login.findOne({
       email,
-      tenant_id: tenant_id,
+      tenant_id: req.user.tenant_id,
     });
     if (existingLogin) {
       return res.status(400).json({
@@ -876,7 +863,7 @@ export const createUser = async (req, res) => {
     // Create login credentials
     const login = new Login({
       user_id: user._id,
-      tenant_id: tenant_id,
+      tenant_id: req.user.tenant_id,
       email,
       password, // Will be hashed by pre-save middleware
       role_id,
@@ -1093,14 +1080,14 @@ export const searchUsers = async (req, res) => {
             { "tenant.name": { $regex: searchValue, $options: "i" } },
             { "tenant.subdomain": { $regex: searchValue, $options: "i" } },
             // Search in combined name fields
-            { 
-              $expr: { 
-                $regexMatch: { 
-                  input: { $concat: ["$user.fname", " ", "$user.lname"] }, 
-                  regex: searchValue, 
-                  options: "i" 
-                } 
-              } 
+            {
+              $expr: {
+                $regexMatch: {
+                  input: { $concat: ["$user.fname", " ", "$user.lname"] },
+                  regex: searchValue,
+                  options: "i"
+                }
+              }
             }
           ]
         }
