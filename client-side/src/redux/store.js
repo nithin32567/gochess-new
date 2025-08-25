@@ -4,6 +4,7 @@ import loadingReducer from "./loading.slice";
 import userReducer from "./user.slice";
 import tenantReducer from "./tenant.slice";
 import courseReducer from "./course.slice";
+import roleReducer from "./role.slice";
 const store = configureStore({
   reducer: {
     superAdmin: superAdminReducer,
@@ -11,6 +12,7 @@ const store = configureStore({
     user: userReducer,
     tenant: tenantReducer,
     course: courseReducer,
+    role: roleReducer,
   },
 });
 

@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 const AddInstructorModal = ({
   setOpenAddInstructorModal,
   instructorRoleId,
+  roles,
 }) => {
   const dispatch = useDispatch();
   const [formData, setFormData] = useState({
@@ -16,10 +17,11 @@ const AddInstructorModal = ({
     dob: "",
     phone_number: "",
     email: "",
-    role_id: instructorRoleId,
+    role_id: roles.find((role) => role.name === "Instructor")?._id,
   });
   console.log(formData, "formData");
   console.log(instructorRoleId, "instructorRoleId");
+  console.log(roles, "roles");
   // const api_url = import.meta.env.VITE_API_URL;
   const handleChange = (e) => {
     const { name, value } = e.target;

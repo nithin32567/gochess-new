@@ -20,7 +20,7 @@ export const createRole = async (req, res) => {
     if (permissions && permissions.length > 0) {
       // Check if permissions are already ObjectIds or permission keys
       const isObjectId = permissions[0] && typeof permissions[0] === 'string' && permissions[0].length === 24;
-      
+
       if (isObjectId) {
         // If they're already ObjectIds, use them directly
         permissionIds = permissions;
@@ -30,14 +30,14 @@ export const createRole = async (req, res) => {
           name: { $in: permissions },
           is_active: true
         });
-        
+
         if (permissionDocs.length !== permissions.length) {
           return res.status(400).json({
             success: false,
             message: "One or more permissions are invalid or inactive",
           });
         }
-        
+
         permissionIds = permissionDocs.map(permission => permission._id);
       }
     }
@@ -68,6 +68,7 @@ export const createRole = async (req, res) => {
 
 // Get all roles
 export const getAllRoles = async (req, res) => {
+  console.log(req.user, "req.user")
   try {
     const roles = await Role.find().populate("permissions");
 
@@ -143,7 +144,7 @@ export const updateRole = async (req, res) => {
       } else {
         // Check if permissions are already ObjectIds or permission keys
         const isObjectId = permissions[0] && typeof permissions[0] === 'string' && permissions[0].length === 24;
-        
+
         if (isObjectId) {
           // If they're already ObjectIds, use them directly
           permissionIds = permissions;
@@ -153,14 +154,14 @@ export const updateRole = async (req, res) => {
             name: { $in: permissions },
             is_active: true
           });
-          
+
           if (permissionDocs.length !== permissions.length) {
             return res.status(400).json({
               success: false,
               message: "One or more permissions are invalid or inactive",
             });
           }
-          
+
           permissionIds = permissionDocs.map(permission => permission._id);
         }
       }
@@ -308,7 +309,7 @@ export const getRoleByName = async (req, res) => {
 export const getPermissionsByKeys = async (req, res) => {
   try {
     const { keys } = req.query;
-    
+
     if (!keys) {
       return res.status(400).json({
         success: false,

@@ -22,8 +22,8 @@ const router = Router();
 // Role routes
 router
   .route("/")
-  .post(authCheckMiddleware,authorizeRoles("superadmin"), createRole)
-  .get(authCheckMiddleware,authorizeRoles("superadmin", "tenant"), getAllRoles);
+  .post(authCheckMiddleware, authorizeRoles("superadmin"), createRole)
+  .get(authCheckMiddleware, authorizeRoles("superadmin", "tenant"), getAllRoles);
 
 // Get permissions by keys
 router.get("/permissions/by-keys", authCheckMiddleware, authorizeRoles("superadmin"), getPermissionsByKeys);

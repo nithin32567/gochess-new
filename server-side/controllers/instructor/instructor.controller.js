@@ -1,48 +1,23 @@
 import Login from "../../models/login.model.js";
 
 export const getAllInstructors = async (req, res) => {
+  const { user } = req;
   try {
-    const tenant_id = req.user.tenant_id;
-    // console.log(tenant_id, "tenant_id");
-    // console.log(req.user, "req.user");
 
     const instructors = await Login.find({
-      tenant_id: tenant_id,
-    })
-      .populate("user_id role_id")
-      .select("-password");
-
-    const filteredInstructors = instructors.filter(
-
-      (instructor) => instructor.role_id?.name === "instructor"
-
-    );
-
-    const organizedInstructors = filteredInstructors.map((instructor) => ({
-      id: instructor._id,
-      email: instructor.email,
-      name: instructor.user_id.fname + " " + instructor.user_id.lname,
-      role: instructor.role_id.name,
-      role_id: instructor.role_id._id,
-      phone_number: instructor.user_id.phone_number,
-      dob: instructor.user_id.dob,
-      age: instructor.user_id.age,
-      user_id: instructor.user_id._id,
-      status: instructor.is_active,
-      createdAt: instructor.createdAt,
-      updatedAt: instructor.updatedAt,
-    }));
-
-    res.status(200).json({
+      tenant_id: user.tenant_id
+    }).populate("user_id role_id").select("-password")
+    console.log(instructors, 'instructors')
+    return res.status(200).json({
       success: true,
-      data: organizedInstructors,
-    });
+      data: instructors
+    })
   } catch (error) {
-    // console.log(error);
-    res.status(500).json({
+    console.log(error)
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
-    });
+    })
   }
 };
 

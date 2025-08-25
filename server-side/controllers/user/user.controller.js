@@ -781,144 +781,82 @@ export const getUsersByRoleSuperadmin = async (req, res) => {
 
 
 export const createUser = async (req, res) => {
-  // >>>>>>> dev
-  console.log("createUser", req.body);
   const session = await mongoose.startSession();
-  session.startTransaction();
-  console.log(req.user, "req.user");
-  const tenant_id = req.user.tenant_id
-
   try {
-    const {
-      // User details
-      fname,
-      lname,
-      age,
-      dob,
-      phone_number,
-      // Login details
-      email,
-      // password,
-      role_id,
-    } = req.body;
+    const { user } = req;
+    const { fname, lname, dob, age, phone_number, email, role_id } = req.body;
+    console.log(req.body, "req.body")
 
-
-    // Validate required fields
-    if (!fname || !lname || !email || !role_id) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields",
-      });
-    }
-
-    // Validate ObjectIds
-    if (!mongoose.Types.ObjectId.isValid(role_id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid role ID format",
-      });
-    }
-
-
-
-    // Verify role and tenant exist
-    const role = await Role.findById(role_id);
-    if (!role) {
-      return res.status(400).json({
-        success: false,
-        message: "Role not found",
-      });
-    }
-
-    // console.log();
-
-    // Check if email already exists for the tenant
-    const existingLogin = await Login.findOne({
-      email,
-      tenant_id: req.user.tenant_id,
-    });
+    const existingLogin = await Login.findOne({ $or: [{ email }, { phone_number }] });
     if (existingLogin) {
       return res.status(400).json({
         success: false,
-        message: "Email already exists for this tenant",
+        message: existingLogin.email === email
+          ? 'Email already exists'
+          : 'Phone number already exists',
       });
     }
 
-    // Create user
-    const user = new User({
+    const randomPassword = await generateRandomPassword();
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+    // Start transaction
+    session.startTransaction();
+
+    const userResponse = await User.create([{
       fname,
       lname,
-      age,
       dob,
+      age,
       phone_number,
-      email,
-    });
-    // !password should be generated in a more secure random way
+      email
+    }], { session });
 
-    const password = generateRandomPassword(12);
-    console.log(password);
+    // console.log(userResponse, "userResponse==============")
 
-    await user.save({ session });
-    console.log(user, "user created ==========================");
-    // Create login credentials
-    const login = new Login({
-      user_id: user._id,
-      tenant_id: req.user.tenant_id,
-      email,
-      password, // Will be hashed by pre-save middleware
+    const loginResponse = await Login.create([{
+      user_id: userResponse[0]._id,
       role_id,
+      password: hashedPassword,
+      tenant_id: user.tenant_id,
+      is_active: true,
+      email,
+      phone_number
+    }], { session });
+    // console.log(loginResponse, "loginResponse==============")
+
+    // Send email (commented out until email credentials are fixed)
+    await sendMail({
+      to: email,
+      subject: "Welcome to GoChess LMS",
+      text: `Hello ${fname}, your password is ${randomPassword}`,
+      html: `<p>Hello ${fname}, your password is <strong>${randomPassword}</strong></p>`
     });
 
-    await login.save({ session });
 
+    // Temporary: Log the password for development
+    console.log(`User created successfully. Password for ${email}: ${randomPassword}`);
+
+    // Commit transaction if all succeeded
     await session.commitTransaction();
+    session.endSession();
 
-    // Return user data without sensitive information
-    const userResponse = {
-      _id: user._id,
-      fname: user.fname,
-      lname: user.lname,
-      email: login.email,
-      role_id: login.role_id,
-      tenant_id: login.tenant_id,
-      created_at: user.createdAt,
-    };
-
-    // Send email after successful transaction commit
-    try {
-      const token = jwt.sign({ email: login.email }, process.env.JWT_SECRET, {
-        expiresIn: "1h",
-      });
-      const resetPasswordLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-      await sendMail({
-        to: login.email,
-        subject: "Welcome to our platform",
-        text: `Your password is ${password}`,
-        resetPasswordLink,
-      });
-    } catch (emailError) {
-      console.error("Error sending email:", emailError);
-      // Don't fail the user creation if email fails
-    }
-
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "User created successfully",
-      data: userResponse,
+      data: userResponse[0],
     });
+
   } catch (error) {
-    // Only abort transaction if it hasn't been committed yet
-    if (session.inTransaction()) {
-      await session.abortTransaction();
-    }
+    await session.abortTransaction();
+    session.endSession();
+
     console.error("Error creating user:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error creating user",
       error: error.message,
     });
-  } finally {
-    session.endSession();
   }
 };
 
